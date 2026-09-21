@@ -1,0 +1,25 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "stratin-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "DATABASE_URL": "",
+    "SOLANA_RPC_URL": "",
+    "REGISTRY_SOLANA_RPC_URL": "",
+    "JUPITER_SWAP_API_BASE_URL": "https://lite-api.jup.ag/swap/v1",
+    "ENTRY_FEE_BPS": "25",
+    "REBALANCE_FEE_BPS": "10",
+    "PROTOCOL_FEE_SHARE_BPS": "2000",
+    "PROTOCOL_TREASURY": "stiFExnwsWbHxrB5CqCSBWMbLjgB8hVLURtUsyAr3RT"
+  }
+}

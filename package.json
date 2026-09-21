@@ -1,0 +1,24 @@
+{
+  "name": "stratin",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.18.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "chai": "^6.2.2",
+    "mocha": "^12.0.2",
+    "prettier": "^3.6.2",
+    "tsx": "^4.23.15",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
+  }
+}

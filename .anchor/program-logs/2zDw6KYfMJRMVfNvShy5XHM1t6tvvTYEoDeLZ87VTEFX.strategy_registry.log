@@ -1,0 +1,64 @@
+Transaction executed in slot 7:
+  Signature: 2PPgtsgeCJEkoxXnvg332tfzHwvDDvq8VhvU3awo5Q8ZbZNciYtqjDb5mmkuSRZw8h5ghDTnN4AEdSR3KFzZnHjW
+  Status: Ok
+  Log Messages:
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX invoke [1]
+    Program log: Instruction: CreateStrategy
+    Program 11111111111111111111111111111111 invoke [2]
+    Program 11111111111111111111111111111111 success
+    Program 11111111111111111111111111111111 invoke [2]
+    Program 11111111111111111111111111111111 success
+    Program data: tovcdKOwod8C6ZKI40POCHwoZ/3CsLzX4g4H8qFuPobLvcE5FLaaJDINXi7alqwQPZzw988jZkjIHH43/p5Y4zuyrs9N1p+wAQAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX consumed 14000 of 200000 compute units
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX success
+
+Transaction executed in slot 7:
+  Signature: 2vmgbWWbgMtv1VqjHBUDnAf4xoha4gCzoSgMZ4adaGmr87ibW8svPYNgiym4h9QAxvKxmxZ5q9JsBaw22DgdwHhf
+  Status: Error processing Instruction 0: custom program error: 0x1770
+  Log Messages:
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX invoke [1]
+    Program log: Instruction: PublishRebalance
+    Program 11111111111111111111111111111111 invoke [2]
+    Program 11111111111111111111111111111111 success
+    Program log: AnchorError thrown in programs/strategy-registry/src/lib.rs:53. Error Code: Unauthorized. Error Number: 6000. Error Message: Only the strategy creator can modify this strategy..
+    Program log: Left:
+    Program log: CNPWGejQkMpB144E86kzZ2z15xuTTLmoUQyfznQge5Z
+    Program log: Right:
+    Program log: 5Bp8BucuuuYQir4SywvCWLyHfJaEyGgT3ADt3HQc6F8v
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX consumed 12520 of 200000 compute units
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX failed: custom program error: 0x1770
+
+Transaction executed in slot 7:
+  Signature: 56c6XFTjjRnXYL3xpbRZHnAmC1Ta9gQJziovh9QE2yYjNQp5SVrC6gezK86tXN2HtqnzU6FiSp5UfHTg7ksBUkhR
+  Status: Ok
+  Log Messages:
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX invoke [1]
+    Program log: Instruction: PublishRebalance
+    Program 11111111111111111111111111111111 invoke [2]
+    Program 11111111111111111111111111111111 success
+    Program data: lAIK/FD22KwC6ZKI40POCHwoZ/3CsLzX4g4H8qFuPobLvcE5FLaaJDINXi7alqwQPZzw988jZkjIHH43/p5Y4zuyrs9N1p+wAgAAAAICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX consumed 11627 of 200000 compute units
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX success
+
+Transaction executed in slot 8:
+  Signature: 56c6XFTjjRnXYL3xpbRZHnAmC1Ta9gQJziovh9QE2yYjNQp5SVrC6gezK86tXN2HtqnzU6FiSp5UfHTg7ksBUkhR
+  Status: Ok
+  Log Messages:
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX invoke [1]
+    Program log: Instruction: PublishRebalance
+    Program 11111111111111111111111111111111 invoke [2]
+    Program 11111111111111111111111111111111 success
+    Program data: lAIK/FD22KwC6ZKI40POCHwoZ/3CsLzX4g4H8qFuPobLvcE5FLaaJDINXi7alqwQPZzw988jZkjIHH43/p5Y4zuyrs9N1p+wAgAAAAICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIC
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX consumed 11627 of 200000 compute units
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX success
+
+Transaction executed in slot 9:
+  Signature: 34CRApXU1UFJ1vFVrxzs6S2JhW4JJXALWnqPpm5PenFkommC1sj2hAJvXrmUmw1EwmeXtpFktr8VY9EoNRqcDjGe
+  Status: Ok
+  Log Messages:
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX invoke [1]
+    Program log: Instruction: CloseStrategy
+    Program data: qKOH/9q9zMQC6ZKI40POCHwoZ/3CsLzX4g4H8qFuPobLvcE5FLaaJDINXi7alqwQPZzw988jZkjIHH43/p5Y4zuyrs9N1p+w
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX consumed 4256 of 200000 compute units
+    Program 2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX success
+

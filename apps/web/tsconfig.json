@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@stratin/execution": [
+        "../../packages/execution/src"
+      ],
+      "@stratin/strategy-engine": [
+        "../../packages/strategy-engine/src"
+      ],
+      "@stratin/shared": [
+        "../../packages/shared/src"
+      ]
+    },
+    "incremental": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "id": "9107cc4d-9478-445c-84ac-344af178dac4",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.investor_strategy_events": {
+      "name": "investor_strategy_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "investment_id": {
+          "name": "investment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "investor_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_signatures": {
+          "name": "transaction_signatures",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "investor_strategy_events_investment_id_idx": {
+          "name": "investor_strategy_events_investment_id_idx",
+          "columns": [
+            {
+              "expression": "investment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "investor_strategy_events_investment_id_strategy_investments_id_fk": {
+          "name": "investor_strategy_events_investment_id_strategy_investments_id_fk",
+          "tableFrom": "investor_strategy_events",
+          "tableTo": "strategy_investments",
+          "columnsFrom": [
+            "investment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.strategies": {
+      "name": "strategies",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "creator_wallet": {
+          "name": "creator_wallet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_version": {
+          "name": "current_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "status": {
+          "name": "status",
+          "type": "strategy_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "strategies_creator_wallet_idx": {
+          "name": "strategies_creator_wallet_idx",
+          "columns": [
+            {
+              "expression": "creator_wallet",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.strategy_allocations": {
+      "name": "strategy_allocations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "strategy_version_id": {
+          "name": "strategy_version_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_mint": {
+          "name": "asset_mint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight_bps": {
+          "name": "weight_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "strategy_allocations_version_idx": {
+          "name": "strategy_allocations_version_idx",
+          "columns": [
+            {
+              "expression": "strategy_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "strategy_allocations_strategy_version_id_strategy_versions_id_fk": {
+          "name": "strategy_allocations_strategy_version_id_strategy_versions_id_fk",
+          "tableFrom": "strategy_allocations",
+          "tableTo": "strategy_versions",
+          "columnsFrom": [
+            "strategy_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.strategy_investments": {
+      "name": "strategy_investments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "strategy_id": {
+          "name": "strategy_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "investor_wallet": {
+          "name": "investor_wallet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "strategy_version": {
+          "name": "strategy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "initial_amount_usdc_atomic": {
+          "name": "initial_amount_usdc_atomic",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invested_at": {
+          "name": "invested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "strategy_investments_strategy_id_idx": {
+          "name": "strategy_investments_strategy_id_idx",
+          "columns": [
+            {
+              "expression": "strategy_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "strategy_investments_investor_wallet_idx": {
+          "name": "strategy_investments_investor_wallet_idx",
+          "columns": [
+            {
+              "expression": "investor_wallet",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "strategy_investments_strategy_id_strategies_id_fk": {
+          "name": "strategy_investments_strategy_id_strategies_id_fk",
+          "tableFrom": "strategy_investments",
+          "tableTo": "strategies",
+          "columnsFrom": [
+            "strategy_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.strategy_versions": {
+      "name": "strategy_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "strategy_id": {
+          "name": "strategy_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "strategy_versions_strategy_id_idx": {
+          "name": "strategy_versions_strategy_id_idx",
+          "columns": [
+            {
+              "expression": "strategy_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "strategy_versions_strategy_id_strategies_id_fk": {
+          "name": "strategy_versions_strategy_id_strategies_id_fk",
+          "tableFrom": "strategy_versions",
+          "tableTo": "strategies",
+          "columnsFrom": [
+            "strategy_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.investor_event_type": {
+      "name": "investor_event_type",
+      "schema": "public",
+      "values": [
+        "INVEST"
+      ]
+    },
+    "public.strategy_status": {
+      "name": "strategy_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "CLOSED"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
