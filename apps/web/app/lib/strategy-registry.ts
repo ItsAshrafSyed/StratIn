@@ -9,21 +9,24 @@ import {
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   type Address,
-  type Blockhash,
-  type Instruction
+  type Instruction,
 } from "@solana/kit";
+import { parseLatestBlockhashRpcResult } from "./latest-blockhash";
+import { STRATIN_TRANSACTION_VERSION } from "./transaction-version";
 
-export const STRATEGY_REGISTRY_PROGRAM_ID = "2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX";
+export const STRATEGY_REGISTRY_PROGRAM_ID =
+  "2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX";
 
 const SYSTEM_PROGRAM_ADDRESS = address("11111111111111111111111111111111");
-const CREATE_STRATEGY_DISCRIMINATOR = Uint8Array.from([152, 160, 107, 148, 245, 190, 127, 224]);
-const PUBLISH_REBALANCE_DISCRIMINATOR = Uint8Array.from([183, 39, 115, 91, 18, 29, 160, 71]);
-const CLOSE_STRATEGY_DISCRIMINATOR = Uint8Array.from([56, 247, 170, 246, 89, 221, 134, 200]);
-
-type LatestBlockhash = {
-  blockhash: string;
-  lastValidBlockHeight: number;
-};
+const CREATE_STRATEGY_DISCRIMINATOR = Uint8Array.from([
+  152, 160, 107, 148, 245, 190, 127, 224,
+]);
+const PUBLISH_REBALANCE_DISCRIMINATOR = Uint8Array.from([
+  183, 39, 115, 91, 18, 29, 160, 71,
+]);
+const CLOSE_STRATEGY_DISCRIMINATOR = Uint8Array.from([
+  56, 247, 170, 246, 89, 221, 134, 200,
+]);
 
 export type RegistryCommitmentBuild = {
   transaction: ReturnType<typeof compileTransaction>;
@@ -35,7 +38,7 @@ export type RegistryCommitmentBuild = {
 
 export async function buildCreateStrategyCommitmentTransaction({
   creatorWallet,
-  allocationHash
+  allocationHash,
 }: {
   creatorWallet: string;
   allocationHash: string;
@@ -44,7 +47,11 @@ export async function buildCreateStrategyCommitmentTransaction({
   const creator = address(creatorWallet);
   const strategyPda = await deriveStrategyPda(creator, strategyId);
   const versionPda = await deriveVersionPda(strategyPda, 1);
-  const data = concatBytes(CREATE_STRATEGY_DISCRIMINATOR, strategyId, hexToBytes(allocationHash));
+  const data = concatBytes(
+    CREATE_STRATEGY_DISCRIMINATOR,
+    strategyId,
+    hexToBytes(allocationHash),
+  );
 
   return {
     allocationHash,
@@ -59,11 +66,11 @@ export async function buildCreateStrategyCommitmentTransaction({
           { address: creator, role: AccountRole.WRITABLE_SIGNER },
           { address: address(strategyPda), role: AccountRole.WRITABLE },
           { address: address(versionPda), role: AccountRole.WRITABLE },
-          { address: SYSTEM_PROGRAM_ADDRESS, role: AccountRole.READONLY }
+          { address: SYSTEM_PROGRAM_ADDRESS, role: AccountRole.READONLY },
         ],
-        data
-      }
-    })
+        data,
+      },
+    }),
   };
 }
 
@@ -71,7 +78,7 @@ export async function buildPublishRebalanceCommitmentTransaction({
   creatorWallet,
   allocationHash,
   registryStrategyPda,
-  nextVersion
+  nextVersion,
 }: {
   creatorWallet: string;
   allocationHash: string;
@@ -94,17 +101,20 @@ export async function buildPublishRebalanceCommitmentTransaction({
           { address: creator, role: AccountRole.WRITABLE_SIGNER },
           { address: strategyPda, role: AccountRole.WRITABLE },
           { address: address(versionPda), role: AccountRole.WRITABLE },
-          { address: SYSTEM_PROGRAM_ADDRESS, role: AccountRole.READONLY }
+          { address: SYSTEM_PROGRAM_ADDRESS, role: AccountRole.READONLY },
         ],
-        data: concatBytes(PUBLISH_REBALANCE_DISCRIMINATOR, hexToBytes(allocationHash))
-      }
-    })
+        data: concatBytes(
+          PUBLISH_REBALANCE_DISCRIMINATOR,
+          hexToBytes(allocationHash),
+        ),
+      },
+    }),
   };
 }
 
 export async function buildCloseStrategyCommitmentTransaction({
   creatorWallet,
-  registryStrategyPda
+  registryStrategyPda,
 }: {
   creatorWallet: string;
   registryStrategyPda: string;
@@ -116,39 +126,52 @@ export async function buildCloseStrategyCommitmentTransaction({
       programAddress: address(STRATEGY_REGISTRY_PROGRAM_ID),
       accounts: [
         { address: creator, role: AccountRole.READONLY_SIGNER },
-        { address: address(registryStrategyPda), role: AccountRole.WRITABLE }
+        { address: address(registryStrategyPda), role: AccountRole.WRITABLE },
       ],
-      data: CLOSE_STRATEGY_DISCRIMINATOR
-    }
+      data: CLOSE_STRATEGY_DISCRIMINATOR,
+    },
   });
 }
 
 async function buildRegistryTransaction({
   feePayer,
-  instruction
+  instruction,
 }: {
   feePayer: Address;
   instruction: Instruction;
 }) {
-  const latestBlockhash = await rpcRequest<LatestBlockhash>("getLatestBlockhash", [{ commitment: "confirmed" }]);
+  const latestBlockhashResult = await rpcRequest<{
+    value: {
+      blockhash: string;
+      lastValidBlockHeight: number;
+    };
+  }>("getLatestBlockhash", [{ commitment: "confirmed" }]);
+  const latestBlockhash = parseLatestBlockhashRpcResult(latestBlockhashResult);
   const message = appendTransactionMessageInstruction(
     instruction,
     setTransactionMessageLifetimeUsingBlockhash(
-      {
-        blockhash: latestBlockhash.blockhash as Blockhash,
-        lastValidBlockHeight: BigInt(latestBlockhash.lastValidBlockHeight)
-      },
-      setTransactionMessageFeePayer(feePayer, createTransactionMessage({ version: 0 }))
-    )
+      latestBlockhash,
+      setTransactionMessageFeePayer(
+        feePayer,
+        createTransactionMessage({ version: STRATIN_TRANSACTION_VERSION }),
+      ),
+    ),
   );
   return compileTransaction(message);
 }
 
-export async function deriveStrategyPda(creator: Address, strategyId: Uint8Array) {
+export async function deriveStrategyPda(
+  creator: Address,
+  strategyId: Uint8Array,
+) {
   const encoder = getAddressEncoder();
   const [pda] = await getProgramDerivedAddress({
     programAddress: address(STRATEGY_REGISTRY_PROGRAM_ID),
-    seeds: [new TextEncoder().encode("strategy"), encoder.encode(creator), strategyId]
+    seeds: [
+      new TextEncoder().encode("strategy"),
+      encoder.encode(creator),
+      strategyId,
+    ],
   });
   return pda;
 }
@@ -159,7 +182,11 @@ export async function deriveVersionPda(strategyPda: Address, version: number) {
   new DataView(versionBytes.buffer).setUint32(0, version, true);
   const [pda] = await getProgramDerivedAddress({
     programAddress: address(STRATEGY_REGISTRY_PROGRAM_ID),
-    seeds: [new TextEncoder().encode("version"), encoder.encode(strategyPda), versionBytes]
+    seeds: [
+      new TextEncoder().encode("version"),
+      encoder.encode(strategyPda),
+      versionBytes,
+    ],
   });
   return pda;
 }

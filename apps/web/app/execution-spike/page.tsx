@@ -8,31 +8,38 @@ import {
   useDisconnect,
   useIsWalletReady,
   useWalletStatus,
-  useWallets
+  useWallets,
 } from "@solana/kit-plugin-wallet/react";
-import { JupiterExecutionProvider, type ExecutionQuote } from "@stratin/execution";
+import {
+  JupiterExecutionProvider,
+  type ExecutionQuote,
+} from "@stratin/execution";
 import {
   SUPPORTED_TOKENIZED_EQUITIES,
   USDC_MINT,
-  type TokenizedEquityAsset
+  type TokenizedEquityAsset,
 } from "@stratin/shared";
-import { calculateAllocation, type AllocationLeg } from "@stratin/strategy-engine";
+import {
+  calculateAllocation,
+  type AllocationLeg,
+} from "@stratin/strategy-engine";
 import { appConfig } from "../config";
 import { solanaClient } from "../providers";
+import { requireStratInTransactionSupport } from "../lib/transaction-version";
 
 const RPC_URL = appConfig.solanaRpcProxyUrl;
 const MIN_SOL_FOR_FEES_LAMPORTS = 5_000_000n;
 const SLIPPAGE_BPS = 100;
 
 const assetBySymbol = Object.fromEntries(
-  SUPPORTED_TOKENIZED_EQUITIES.map((asset) => [asset.symbol, asset])
+  SUPPORTED_TOKENIZED_EQUITIES.map((asset) => [asset.symbol, asset]),
 ) as Record<string, TokenizedEquityAsset>;
 
 const TEST_STRATEGY = [
   { mint: assetBySymbol.NVDAx.mint, weightBps: 4000 },
   { mint: assetBySymbol.TSLAx.mint, weightBps: 2500 },
   { mint: assetBySymbol.METAx.mint, weightBps: 2500 },
-  { mint: USDC_MINT, weightBps: 1000 }
+  { mint: USDC_MINT, weightBps: 1000 },
 ] as const;
 
 type TokenBalance = {
@@ -66,7 +73,10 @@ function formatAtomic(amount: bigint, decimals: number) {
   const scale = 10n ** BigInt(decimals);
   const whole = value / scale;
   const fraction = value % scale;
-  const trimmedFraction = fraction.toString().padStart(decimals, "0").replace(/0+$/, "");
+  const trimmedFraction = fraction
+    .toString()
+    .padStart(decimals, "0")
+    .replace(/0+$/, "");
   return `${negative ? "-" : ""}${whole.toString()}${trimmedFraction ? `.${trimmedFraction}` : ""}`;
 }
 
@@ -83,20 +93,23 @@ function parseDecimalToAtomic(value: string, decimals: number) {
     throw new Error(`USDC supports at most ${decimals} decimal places.`);
   }
 
-  return BigInt(wholePart) * 10n ** BigInt(decimals) + BigInt(fractionPart.padEnd(decimals, "0"));
+  return (
+    BigInt(wholePart) * 10n ** BigInt(decimals) +
+    BigInt(fractionPart.padEnd(decimals, "0"))
+  );
 }
 
 function decodeBase64Transaction(serializedTransactionBase64: string) {
-  const bytes = Uint8Array.from(atob(serializedTransactionBase64), (char) => char.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(serializedTransactionBase64), (char) =>
+    char.charCodeAt(0),
+  );
   return getTransactionDecoder().decode(bytes);
 }
 
-function hasSignAndSendTransactions(
-  signer: unknown
-): signer is {
+function hasSignAndSendTransactions(signer: unknown): signer is {
   signAndSendTransactions(
     transactions: readonly unknown[],
-    config?: { abortSignal?: AbortSignal }
+    config?: { abortSignal?: AbortSignal },
   ): Promise<readonly Uint8Array[]>;
 } {
   return (
@@ -115,13 +128,15 @@ async function rpcRequest<T>(method: string, params: unknown[]) {
       jsonrpc: "2.0",
       id: crypto.randomUUID(),
       method,
-      params
-    })
+      params,
+    }),
   });
   const payload = (await response.json()) as JsonRpcResponse<T>;
 
   if (!response.ok || payload.error) {
-    throw new Error(`RPC ${method} failed: ${payload.error?.message ?? response.statusText}`);
+    throw new Error(
+      `RPC ${method} failed: ${payload.error?.message ?? response.statusText}`,
+    );
   }
 
   if (payload.result === undefined) {
@@ -132,7 +147,10 @@ async function rpcRequest<T>(method: string, params: unknown[]) {
 }
 
 async function fetchSolBalanceLamports(owner: string) {
-  const result = await rpcRequest<{ value: number }>("getBalance", [owner, { commitment: "confirmed" }]);
+  const result = await rpcRequest<{ value: number }>("getBalance", [
+    owner,
+    { commitment: "confirmed" },
+  ]);
   return BigInt(result.value);
 }
 
@@ -160,7 +178,7 @@ async function fetchTokenBalances(owner: string, mints: readonly string[]) {
     }>("getTokenAccountsByOwner", [
       owner,
       { mint: requestedMint },
-      { encoding: "jsonParsed", commitment: "confirmed" }
+      { encoding: "jsonParsed", commitment: "confirmed" },
     ]);
 
     for (const account of result.value) {
@@ -175,7 +193,10 @@ async function fetchTokenBalances(owner: string, mints: readonly string[]) {
         mint,
         amountAtomic: existing + BigInt(tokenAmount.amount),
         decimals: tokenAmount.decimals,
-        uiAmountString: formatAtomic(existing + BigInt(tokenAmount.amount), tokenAmount.decimals)
+        uiAmountString: formatAtomic(
+          existing + BigInt(tokenAmount.amount),
+          tokenAmount.decimals,
+        ),
       });
     }
   }
@@ -187,14 +208,20 @@ async function confirmSignature(signature: string) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const result = await rpcRequest<{
       value: ({ confirmationStatus?: string; err: unknown } | null)[];
-    }>("getSignatureStatuses", [[signature], { searchTransactionHistory: true }]);
+    }>("getSignatureStatuses", [
+      [signature],
+      { searchTransactionHistory: true },
+    ]);
     const status = result.value[0];
 
     if (status?.err) {
       throw new Error(JSON.stringify(status.err));
     }
 
-    if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+    if (
+      status?.confirmationStatus === "confirmed" ||
+      status?.confirmationStatus === "finalized"
+    ) {
       return;
     }
 
@@ -212,8 +239,12 @@ export default function ExecutionSpikePage() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [investmentInput, setInvestmentInput] = useState("100");
-  const [balances, setBalances] = useState<Map<string, TokenBalance>>(new Map());
-  const [solBalanceLamports, setSolBalanceLamports] = useState<bigint | null>(null);
+  const [balances, setBalances] = useState<Map<string, TokenBalance>>(
+    new Map(),
+  );
+  const [solBalanceLamports, setSolBalanceLamports] = useState<bigint | null>(
+    null,
+  );
   const [quotes, setQuotes] = useState<QuoteByMint>({});
   const [statuses, setStatuses] = useState<LegStatus[]>([]);
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
@@ -231,7 +262,7 @@ export default function ExecutionSpikePage() {
   const walletAddress = connectedWallet?.account.address ?? null;
   const provider = useMemo(
     () => new JupiterExecutionProvider(appConfig.jupiterSwapApiBaseUrl),
-    []
+    [],
   );
   const investmentAmountAtomic = useMemo(() => {
     try {
@@ -248,7 +279,7 @@ export default function ExecutionSpikePage() {
     try {
       return calculateAllocation({
         investmentAmountAtomic,
-        allocations: TEST_STRATEGY
+        allocations: TEST_STRATEGY,
       });
     } catch {
       return null;
@@ -258,10 +289,13 @@ export default function ExecutionSpikePage() {
   const canSignAndSend = hasSignAndSendTransactions(connectedWallet?.signer);
   const displayWalletAddress = hasMounted ? walletAddress : null;
   const displaySolBalance = hasMounted ? solBalanceLamports : null;
-  const displayUsdcBalance = hasMounted ? balances.get(USDC_MINT)?.uiAmountString : undefined;
-  const supportedVersions = hasMounted && connectedWallet
-    ? [...connectedWallet.supportedTransactionVersions].join(", ")
-    : "not connected";
+  const displayUsdcBalance = hasMounted
+    ? balances.get(USDC_MINT)?.uiAmountString
+    : undefined;
+  const supportedVersions =
+    hasMounted && connectedWallet
+      ? [...connectedWallet.supportedTransactionVersions].join(", ")
+      : "not connected";
 
   useEffect(() => {
     setHasMounted(true);
@@ -274,7 +308,11 @@ export default function ExecutionSpikePage() {
       await connectSelectedWallet(wallet);
       setIsWalletModalOpen(false);
     } catch (connectError) {
-      setError(connectError instanceof Error ? connectError.message : "Wallet connection failed.");
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : "Wallet connection failed.",
+      );
     }
   }
 
@@ -282,7 +320,7 @@ export default function ExecutionSpikePage() {
     const mints = SUPPORTED_TOKENIZED_EQUITIES.map((asset) => asset.mint);
     const [nextSolBalance, nextBalances] = await Promise.all([
       fetchSolBalanceLamports(address),
-      fetchTokenBalances(address, mints)
+      fetchTokenBalances(address, mints),
     ]);
     setSolBalanceLamports(nextSolBalance);
     setBalances(nextBalances);
@@ -300,7 +338,11 @@ export default function ExecutionSpikePage() {
     try {
       return await loadBalances(walletAddress);
     } catch (balanceError) {
-      setError(balanceError instanceof Error ? balanceError.message : "Failed to refresh balances.");
+      setError(
+        balanceError instanceof Error
+          ? balanceError.message
+          : "Failed to refresh balances.",
+      );
       return null;
     } finally {
       setIsRefreshingBalances(false);
@@ -332,13 +374,17 @@ export default function ExecutionSpikePage() {
           inputMint: USDC_MINT,
           outputMint: leg.mint,
           amountAtomic: leg.targetAmountAtomic,
-          slippageBps: SLIPPAGE_BPS
+          slippageBps: SLIPPAGE_BPS,
         });
       }
 
       setQuotes(nextQuotes);
     } catch (quoteError) {
-      setError(quoteError instanceof Error ? quoteError.message : "Quote request failed.");
+      setError(
+        quoteError instanceof Error
+          ? quoteError.message
+          : "Quote request failed.",
+      );
     } finally {
       setIsQuoting(false);
     }
@@ -367,7 +413,11 @@ export default function ExecutionSpikePage() {
       freshSolBalanceLamports = fresh.nextSolBalance;
     } catch (balanceError) {
       setIsExecuting(false);
-      setError(balanceError instanceof Error ? balanceError.message : "Failed to refresh balances.");
+      setError(
+        balanceError instanceof Error
+          ? balanceError.message
+          : "Failed to refresh balances.",
+      );
       return;
     }
 
@@ -378,8 +428,8 @@ export default function ExecutionSpikePage() {
       setError(
         `Insufficient USDC balance. App sees ${formatAtomic(usdcBalance, 6)} USDC, required ${formatAtomic(
           allocation.investmentAmountAtomic,
-          6
-        )} USDC.`
+          6,
+        )} USDC.`,
       );
       return;
     }
@@ -392,16 +442,23 @@ export default function ExecutionSpikePage() {
 
     if (!canSignAndSend || !connectedWallet.signer) {
       setIsExecuting(false);
-      setError("Connected wallet does not expose Kit signAndSendTransactions for this spike.");
+      setError(
+        "Connected wallet does not expose Kit signAndSendTransactions for this spike.",
+      );
       return;
     }
 
-    if (
-      !connectedWallet.supportedTransactionVersions.has(0) &&
-      !connectedWallet.supportedTransactionVersions.has(1)
-    ) {
+    try {
+      requireStratInTransactionSupport(
+        connectedWallet.supportedTransactionVersions,
+      );
+    } catch (versionError) {
       setIsExecuting(false);
-      setError("Connected wallet does not report support for versioned Solana transactions.");
+      setError(
+        versionError instanceof Error
+          ? versionError.message
+          : "Unsupported transaction version.",
+      );
       return;
     }
 
@@ -409,7 +466,9 @@ export default function ExecutionSpikePage() {
 
     if (missingQuote) {
       setIsExecuting(false);
-      setError(`Missing quote for ${missingQuote.symbol}. Request quotes first.`);
+      setError(
+        `Missing quote for ${missingQuote.symbol}. Request quotes first.`,
+      );
       return;
     }
 
@@ -422,29 +481,39 @@ export default function ExecutionSpikePage() {
     for (const leg of swapLegs) {
       setStatuses((current) =>
         current.map((status) =>
-          status.mint === leg.mint ? { mint: leg.mint, status: "signing" } : status
-        )
+          status.mint === leg.mint
+            ? { mint: leg.mint, status: "signing" }
+            : status,
+        ),
       );
 
       try {
         const quote = quotes[leg.mint];
         const built = await provider.buildTransaction({
           quote,
-          userPublicKey: walletAddress
+          userPublicKey: walletAddress,
         });
         builtTransactions.push({
           leg,
-          transaction: decodeBase64Transaction(built.serializedTransactionBase64)
+          transaction: decodeBase64Transaction(
+            built.serializedTransactionBase64,
+          ),
         });
       } catch (buildError) {
         const message =
-          buildError instanceof Error ? buildError.message : "Transaction build failed.";
+          buildError instanceof Error
+            ? buildError.message
+            : "Transaction build failed.";
         setStatuses((current) =>
           current.map((status) =>
-            status.mint === leg.mint ? { mint: leg.mint, status: "failed", error: message } : status
-          )
+            status.mint === leg.mint
+              ? { mint: leg.mint, status: "failed", error: message }
+              : status,
+          ),
         );
-        setError(`Basket transaction build failed at ${leg.symbol}: ${message}`);
+        setError(
+          `Basket transaction build failed at ${leg.symbol}: ${message}`,
+        );
         setIsExecuting(false);
         return;
       }
@@ -453,11 +522,20 @@ export default function ExecutionSpikePage() {
     let signatures: readonly Uint8Array[];
     try {
       signatures = await connectedWallet.signer.signAndSendTransactions(
-        builtTransactions.map((item) => item.transaction)
+        builtTransactions.map((item) => item.transaction),
       );
     } catch (signError) {
-      const message = signError instanceof Error ? signError.message : "Wallet signing failed.";
-      setStatuses((current) => current.map((status) => ({ ...status, status: "failed", error: message })));
+      const message =
+        signError instanceof Error
+          ? signError.message
+          : "Wallet signing failed.";
+      setStatuses((current) =>
+        current.map((status) => ({
+          ...status,
+          status: "failed",
+          error: message,
+        })),
+      );
       setError(`Batched basket signing failed: ${message}`);
       setIsExecuting(false);
       return;
@@ -465,16 +543,23 @@ export default function ExecutionSpikePage() {
 
     for (const [index, item] of builtTransactions.entries()) {
       const signatureBytes = signatures[index];
-      const signature = signatureBytes ? getBase58Decoder().decode(signatureBytes) : "";
+      const signature = signatureBytes
+        ? getBase58Decoder().decode(signatureBytes)
+        : "";
 
       if (!signature) {
-        const message = "Wallet did not return a transaction signature for this leg.";
+        const message =
+          "Wallet did not return a transaction signature for this leg.";
         setStatuses((current) =>
           current.map((status) =>
-            status.mint === item.leg.mint ? { mint: item.leg.mint, status: "failed", error: message } : status
-          )
+            status.mint === item.leg.mint
+              ? { mint: item.leg.mint, status: "failed", error: message }
+              : status,
+          ),
         );
-        setError(`Basket partially executed or stopped at ${item.leg.symbol}: ${message}`);
+        setError(
+          `Basket partially executed or stopped at ${item.leg.symbol}: ${message}`,
+        );
         break;
       }
 
@@ -482,18 +567,31 @@ export default function ExecutionSpikePage() {
         await confirmSignature(signature);
         setStatuses((current) =>
           current.map((status) =>
-            status.mint === item.leg.mint ? { mint: item.leg.mint, status: "confirmed", signature } : status
-          )
+            status.mint === item.leg.mint
+              ? { mint: item.leg.mint, status: "confirmed", signature }
+              : status,
+          ),
         );
       } catch (executionError) {
         const message =
-          executionError instanceof Error ? executionError.message : "Execution failed.";
+          executionError instanceof Error
+            ? executionError.message
+            : "Execution failed.";
         setStatuses((current) =>
           current.map((status) =>
-            status.mint === item.leg.mint ? { mint: item.leg.mint, status: "failed", signature, error: message } : status
-          )
+            status.mint === item.leg.mint
+              ? {
+                  mint: item.leg.mint,
+                  status: "failed",
+                  signature,
+                  error: message,
+                }
+              : status,
+          ),
         );
-        setError(`Basket partially executed or stopped at ${item.leg.symbol}: ${message}`);
+        setError(
+          `Basket partially executed or stopped at ${item.leg.symbol}: ${message}`,
+        );
         break;
       }
     }
@@ -505,7 +603,11 @@ export default function ExecutionSpikePage() {
   function renderWalletControl() {
     if (!hasMounted) {
       return (
-        <button className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 opacity-60" disabled type="button">
+        <button
+          className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 opacity-60"
+          disabled
+          type="button"
+        >
           Finding wallets
         </button>
       );
@@ -555,11 +657,24 @@ export default function ExecutionSpikePage() {
           <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
             <h2 className="text-lg font-semibold text-white">Wallet</h2>
             <div className="mt-4 space-y-2 text-sm text-slate-300">
-              <p>Address: {displayWalletAddress ? shortenAddress(displayWalletAddress) : "not connected"}</p>
+              <p>
+                Address:{" "}
+                {displayWalletAddress
+                  ? shortenAddress(displayWalletAddress)
+                  : "not connected"}
+              </p>
               <p>Status: {hasMounted ? walletStatus : "pending"}</p>
               <p>Tx versions: {supportedVersions}</p>
-              <p>Kit sign/send: {hasMounted && canSignAndSend ? "available" : "not available"}</p>
-              <p>SOL: {displaySolBalance === null ? "-" : formatAtomic(displaySolBalance, 9)}</p>
+              <p>
+                Kit sign/send:{" "}
+                {hasMounted && canSignAndSend ? "available" : "not available"}
+              </p>
+              <p>
+                SOL:{" "}
+                {displaySolBalance === null
+                  ? "-"
+                  : formatAtomic(displaySolBalance, 9)}
+              </p>
               <p>USDC: {displayUsdcBalance ?? "0"}</p>
             </div>
             <button
@@ -578,9 +693,14 @@ export default function ExecutionSpikePage() {
               {TEST_STRATEGY.map((leg) => {
                 const asset = getAsset(leg.mint);
                 return (
-                  <div className="flex items-center justify-between text-sm" key={leg.mint}>
+                  <div
+                    className="flex items-center justify-between text-sm"
+                    key={leg.mint}
+                  >
                     <span className="text-white">{asset?.symbol}</span>
-                    <span className="text-slate-300">{leg.weightBps / 100}%</span>
+                    <span className="text-slate-300">
+                      {leg.weightBps / 100}%
+                    </span>
                   </div>
                 );
               })}
@@ -592,7 +712,9 @@ export default function ExecutionSpikePage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-white">Investment</h2>
-              <p className="mt-1 text-sm text-slate-400">USDC retained allocation is not swapped.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                USDC retained allocation is not swapped.
+              </p>
             </div>
             <label className="block">
               <span className="text-sm text-slate-300">USDC amount</span>
@@ -621,7 +743,9 @@ export default function ExecutionSpikePage() {
                 >
                   <div>
                     <p className="font-medium text-white">{leg.symbol}</p>
-                    <p className="text-xs text-slate-500">{leg.requiresSwap ? "swap leg" : "retained"}</p>
+                    <p className="text-xs text-slate-500">
+                      {leg.requiresSwap ? "swap leg" : "retained"}
+                    </p>
                   </div>
                   <p className="text-right text-slate-200">
                     ${formatAtomic(leg.targetAmountUsdAtomic, 6)}
@@ -635,7 +759,9 @@ export default function ExecutionSpikePage() {
                           : `${formatAtomic(leg.targetAmountAtomic, 6)} USDC`}
                     </p>
                     {quote?.priceImpactPct ? (
-                      <p className="text-xs text-slate-500">Impact {quote.priceImpactPct}</p>
+                      <p className="text-xs text-slate-500">
+                        Impact {quote.priceImpactPct}
+                      </p>
                     ) : null}
                   </div>
                 </div>
@@ -654,7 +780,11 @@ export default function ExecutionSpikePage() {
             </button>
             <button
               className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-teal-950/30 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!walletAddress || isExecuting || swapLegs.some((leg) => !quotes[leg.mint])}
+              disabled={
+                !walletAddress ||
+                isExecuting ||
+                swapLegs.some((leg) => !quotes[leg.mint])
+              }
               onClick={() => void executeBasket()}
               type="button"
             >
@@ -668,7 +798,8 @@ export default function ExecutionSpikePage() {
               <div className="mt-3 space-y-2">
                 {swapLegs.map((leg) => (
                   <p key={leg.mint}>
-                    {leg.symbol}: {quotes[leg.mint]?.routeLabels.join(" -> ") || "no route"}
+                    {leg.symbol}:{" "}
+                    {quotes[leg.mint]?.routeLabels.join(" -> ") || "no route"}
                   </p>
                 ))}
               </div>
@@ -687,10 +818,14 @@ export default function ExecutionSpikePage() {
                         {asset?.symbol}: {status.status}
                       </p>
                       {status.signature ? (
-                        <p className="break-all text-xs text-teal-200">{status.signature}</p>
+                        <p className="break-all text-xs text-teal-200">
+                          {status.signature}
+                        </p>
                       ) : null}
                       {status.error ? (
-                        <p className="break-all text-xs text-red-300">{status.error}</p>
+                        <p className="break-all text-xs text-red-300">
+                          {status.error}
+                        </p>
                       ) : null}
                     </div>
                   );
@@ -708,7 +843,8 @@ export default function ExecutionSpikePage() {
                 const asset = getAsset(leg.mint);
                 return (
                   <p key={leg.mint}>
-                    {asset?.symbol}: {balances.get(leg.mint)?.uiAmountString ?? "0"}
+                    {asset?.symbol}:{" "}
+                    {balances.get(leg.mint)?.uiAmountString ?? "0"}
                   </p>
                 );
               })}
@@ -726,8 +862,12 @@ export default function ExecutionSpikePage() {
           <div className="w-full max-w-sm rounded-lg border border-white/10 bg-[#111217] p-5 shadow-2xl shadow-black/40">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Connect Wallet</h2>
-                <p className="mt-1 text-sm text-slate-400">Choose an installed Solana wallet.</p>
+                <h2 className="text-lg font-semibold text-white">
+                  Connect Wallet
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Choose an installed Solana wallet.
+                </p>
               </div>
               <button
                 aria-label="Close wallet modal"
@@ -750,7 +890,9 @@ export default function ExecutionSpikePage() {
                     type="button"
                   >
                     <span>{wallet.name}</span>
-                    <span className="text-xs text-slate-400">Wallet Standard</span>
+                    <span className="text-xs text-slate-400">
+                      Wallet Standard
+                    </span>
                   </button>
                 ))
               ) : (
@@ -760,7 +902,9 @@ export default function ExecutionSpikePage() {
               )}
             </div>
 
-            {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+            {error ? (
+              <p className="mt-4 text-sm text-red-300">{error}</p>
+            ) : null}
           </div>
         </div>
       ) : null}

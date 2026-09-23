@@ -1,25 +1,34 @@
 # Solana Implementation Notes
 
-Review date: 2026-09-15
+## Current decisions
 
-## Current Decision
+- Use `@solana/kit` for new Solana code and Wallet Standard for discovery/signing.
+- Do not introduce wallet-specific adapters for application flows.
+- Keep the strategy engine issuer-agnostic; token-program and execution details belong in adapters.
+- Tokenized-equity Jupiter routes request `instructionVersion=V2` for Token-2022 support.
 
-- Use `@solana/kit` for new Solana code.
-- Use `@solana/kit-plugin-wallet` for browser wallet discovery and connection via Wallet Standard.
-- Use `@solana/react` only to provide the Kit client to React components.
-- Do not introduce `@solana/wallet-adapter-*` for new code.
-- Avoid legacy `@solana/web3.js` v1 transaction construction unless a third-party SDK forces an interop boundary.
+## Transaction policy
 
-## Transaction Policy For Stage 4
+StratIn currently uses Solana transaction version `0` for wallet-signed application transactions:
 
-- Prefer Solana transaction version `1` for StratIn-built transactions once the target wallet reports support for version `1`.
-- Check `client.wallet.getState().connected?.supportedTransactionVersions.has(1)` before attempting to sign/send a version `1` transaction.
-- Fall back only by explicit decision at the execution spike review point, not silently inside the strategy engine.
-- Token-2022 assets require Token-2022-aware instruction/account handling.
-- Jupiter routes must request `instructionVersion=V2` for Token-2022 candidates.
+- Jupiter swaps are requested with `asLegacyTransaction=false` through the previously validated versioned-transaction flow.
+- Registry commitment transactions are built as version `0`.
+- Direct USDC fee-transfer transactions are built as version `0`.
+- Every wallet flow verifies that the connected wallet advertises version `0`; unsupported wallets fail clearly rather than receiving an incompatible transaction.
 
-## Boundaries
+This preserves the wallets and paths used during real execution/rebalance validation. Transaction v1 is not silently selected merely because a wallet advertises it. Moving to v1 requires measured or estimated compute and loaded-account-data limits, simulation, RPC/read-path validation with `maxSupportedTransactionVersion: 1`, and a fresh wallet compatibility regression. Until then, version `0` is the single project policy.
 
-- The web app may connect wallets in Stage 1, but it should not build execution transactions before Stage 4.
-- The strategy engine remains issuer-agnostic and should never know whether an asset is Token-2022, xStocks, or another issuer-specific format.
-- Provider adapters handle token-program, metadata, balance normalization, and execution quirks.
+## RPC boundaries
+
+Execution and registry RPC are intentionally separate:
+
+```text
+execution RPC → mainnet-beta tokenized-equity/Jupiter activity
+registry RPC  → configured registry cluster (commonly devnet during testing)
+```
+
+Backend registry verification checks the configured network's genesis hash before reading accounts. It then validates program ownership, exact data length, Anchor discriminator, creator, strategy ID, strategy/version linkage, version numbers, and canonical allocation hashes.
+
+## Non-custodial boundary
+
+The application never holds an investor signing key and never signs on the investor's behalf. Investors explicitly approve swap, fee, and rebalance transactions. The Anchor registry stores commitments only and never holds or trades investor assets.

@@ -8,6 +8,28 @@ export type TokenBalance = {
   uiAmountString: string;
 };
 
+const TOKEN_PROGRAM_ADDRESSES = [
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+] as const;
+
+type ParsedTokenAccount = {
+  account: {
+    data: {
+      parsed: {
+        info: {
+          mint: string;
+          tokenAmount: {
+            amount: string;
+            decimals: number;
+            uiAmountString: string;
+          };
+        };
+      };
+    };
+  };
+};
+
 type JsonRpcResponse<T> = {
   result?: T;
   error?: { message: string };
@@ -21,8 +43,8 @@ export async function rpcRequest<T>(method: string, params: unknown[]) {
       jsonrpc: "2.0",
       id: crypto.randomUUID(),
       method,
-      params
-    })
+      params,
+    }),
   });
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -31,14 +53,16 @@ export async function rpcRequest<T>(method: string, params: unknown[]) {
     throw new Error(
       `RPC ${method} expected JSON from ${appConfig.solanaRpcProxyUrl}, got ${response.status} ${
         response.statusText || "response"
-      } (${contentType || "no content-type"}). Preview: ${body.slice(0, 120)}`
+      } (${contentType || "no content-type"}). Preview: ${body.slice(0, 120)}`,
     );
   }
 
   const payload = (await response.json()) as JsonRpcResponse<T>;
 
   if (!response.ok || payload.error) {
-    throw new Error(`RPC ${method} failed: ${payload.error?.message ?? response.statusText}`);
+    throw new Error(
+      `RPC ${method} failed: ${payload.error?.message ?? response.statusText}`,
+    );
   }
 
   if (payload.result === undefined) {
@@ -49,41 +73,33 @@ export async function rpcRequest<T>(method: string, params: unknown[]) {
 }
 
 export async function fetchSolBalanceLamports(owner: string) {
-  const result = await rpcRequest<{ value: number }>("getBalance", [owner, { commitment: "confirmed" }]);
+  const result = await rpcRequest<{ value: number }>("getBalance", [
+    owner,
+    { commitment: "confirmed" },
+  ]);
   return BigInt(result.value);
 }
 
-export async function fetchTokenBalances(owner: string, mints: readonly string[]) {
+export async function fetchTokenBalances(
+  owner: string,
+  mints: readonly string[],
+) {
   const balances = new Map<string, TokenBalance>();
+  const requestedMints = new Set(mints);
 
-  for (const requestedMint of mints) {
+  for (const programId of TOKEN_PROGRAM_ADDRESSES) {
     const result = await rpcRequest<{
-      value: {
-        account: {
-          data: {
-            parsed: {
-              info: {
-                mint: string;
-                tokenAmount: {
-                  amount: string;
-                  decimals: number;
-                  uiAmountString: string;
-                };
-              };
-            };
-          };
-        };
-      }[];
+      value: ParsedTokenAccount[];
     }>("getTokenAccountsByOwner", [
       owner,
-      { mint: requestedMint },
-      { encoding: "jsonParsed", commitment: "confirmed" }
+      { programId },
+      { encoding: "jsonParsed", commitment: "confirmed" },
     ]);
 
     for (const account of result.value) {
       const { mint, tokenAmount } = account.account.data.parsed.info;
 
-      if (mint !== requestedMint) {
+      if (!requestedMints.has(mint)) {
         continue;
       }
 
@@ -93,7 +109,7 @@ export async function fetchTokenBalances(owner: string, mints: readonly string[]
         mint,
         amountAtomic,
         decimals: tokenAmount.decimals,
-        uiAmountString: formatAtomic(amountAtomic, tokenAmount.decimals)
+        uiAmountString: formatAtomic(amountAtomic, tokenAmount.decimals),
       });
     }
   }
@@ -105,14 +121,20 @@ export async function confirmSignature(signature: string) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const result = await rpcRequest<{
       value: ({ confirmationStatus?: string; err: unknown } | null)[];
-    }>("getSignatureStatuses", [[signature], { searchTransactionHistory: true }]);
+    }>("getSignatureStatuses", [
+      [signature],
+      { searchTransactionHistory: true },
+    ]);
     const status = result.value[0];
 
     if (status?.err) {
       throw new Error(JSON.stringify(status.err));
     }
 
-    if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+    if (
+      status?.confirmationStatus === "confirmed" ||
+      status?.confirmationStatus === "finalized"
+    ) {
       return;
     }
 

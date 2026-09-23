@@ -8,7 +8,7 @@ import {
   useDisconnect,
   useIsWalletReady,
   useWalletStatus,
-  useWallets
+  useWallets,
 } from "@solana/kit-plugin-wallet/react";
 import { SUPPORTED_TOKENIZED_EQUITIES } from "@stratin/shared";
 import { solanaClient } from "./providers";
@@ -31,10 +31,12 @@ export default function Home() {
     useDisconnect(solanaClient);
   const walletAddress = connectedWallet?.account.address ?? null;
   const equities = useMemo(
-    () => SUPPORTED_TOKENIZED_EQUITIES.filter((asset) => asset.assetClass === "tokenized-equity"),
-    []
+    () =>
+      SUPPORTED_TOKENIZED_EQUITIES.filter(
+        (asset) => asset.assetClass === "tokenized-equity",
+      ),
+    [],
   );
-  const cash = SUPPORTED_TOKENIZED_EQUITIES.find((asset) => asset.symbol === "USDC");
 
   useEffect(() => {
     setHasMounted(true);
@@ -52,7 +54,9 @@ export default function Home() {
       await connectSelectedWallet(wallet);
       setIsWalletModalOpen(false);
     } catch (error) {
-      setWalletError(error instanceof Error ? error.message : "Wallet connection failed.");
+      setWalletError(
+        error instanceof Error ? error.message : "Wallet connection failed.",
+      );
     }
   }
 
@@ -107,7 +111,9 @@ export default function Home() {
         <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Stage 1 Checkpoint</h2>
+              <h2 className="text-lg font-semibold text-white">
+                Stage 1 Checkpoint
+              </h2>
               <p className="mt-1 text-sm text-slate-300">
                 Open StratIn, connect Phantom, see wallet address.
               </p>
@@ -132,14 +138,18 @@ export default function Home() {
                   : "none"}
               </p>
             </div>
-            {walletError ? <p className="mt-3 text-sm text-red-300">{walletError}</p> : null}
+            {walletError ? (
+              <p className="mt-3 text-sm text-red-300">{walletError}</p>
+            ) : null}
           </div>
         </div>
 
         <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-white">Stage 2 Asset Registry</h2>
+              <h2 className="text-lg font-semibold text-white">
+                Stage 2 Asset Registry
+              </h2>
               <p className="mt-1 text-sm text-slate-300">
                 Issuer-agnostic model, limited reviewed shortlist.
               </p>
@@ -159,18 +169,11 @@ export default function Home() {
                   <p className="font-medium text-white">{asset.symbol}</p>
                   <p className="text-sm text-slate-400">{asset.name}</p>
                 </div>
-                <p className="text-right text-xs text-slate-400">{asset.issuer}</p>
+                <p className="text-right text-xs text-slate-400">
+                  {asset.issuer}
+                </p>
               </div>
             ))}
-            {cash ? (
-              <div className="flex items-center justify-between gap-4 rounded-md border border-white/10 bg-black/20 px-4 py-3">
-                <div>
-                  <p className="font-medium text-white">{cash.symbol}</p>
-                  <p className="text-sm text-slate-400">{cash.name}</p>
-                </div>
-                <p className="text-right text-xs text-slate-400">Cash leg</p>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
@@ -184,7 +187,9 @@ export default function Home() {
           <div className="w-full max-w-sm rounded-lg border border-white/10 bg-[#111217] p-5 shadow-2xl shadow-black/40">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">Connect Wallet</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  Connect Wallet
+                </h2>
                 <p className="mt-1 text-sm text-slate-400">
                   Choose an installed Solana wallet.
                 </p>
@@ -210,7 +215,9 @@ export default function Home() {
                     type="button"
                   >
                     <span>{wallet.name}</span>
-                    <span className="text-xs text-slate-400">Wallet Standard</span>
+                    <span className="text-xs text-slate-400">
+                      Wallet Standard
+                    </span>
                   </button>
                 ))
               ) : (
@@ -220,7 +227,9 @@ export default function Home() {
               )}
             </div>
 
-            {walletError ? <p className="mt-4 text-sm text-red-300">{walletError}</p> : null}
+            {walletError ? (
+              <p className="mt-4 text-sm text-red-300">{walletError}</p>
+            ) : null}
           </div>
         </div>
       ) : null}

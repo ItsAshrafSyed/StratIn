@@ -9,14 +9,19 @@ import {
   setTransactionMessageFeePayer,
   setTransactionMessageLifetimeUsingBlockhash,
   type Address,
-  type Blockhash,
-  type Instruction
+  type Instruction,
 } from "@solana/kit";
 import { USDC_MINT } from "@stratin/shared";
+import { parseLatestBlockhashRpcResult } from "./latest-blockhash";
 import { rpcRequest } from "./solana-rpc";
+import { STRATIN_TRANSACTION_VERSION } from "./transaction-version";
 
-const SPL_TOKEN_PROGRAM_ADDRESS = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-const ASSOCIATED_TOKEN_PROGRAM_ADDRESS = address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+const SPL_TOKEN_PROGRAM_ADDRESS = address(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+);
+const ASSOCIATED_TOKEN_PROGRAM_ADDRESS = address(
+  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+);
 const SYSTEM_PROGRAM_ADDRESS = address("11111111111111111111111111111111");
 const USDC_DECIMALS = 6;
 
@@ -34,7 +39,7 @@ export type FeeTransferTarget = {
 
 export async function buildUsdcFeeTransferTransaction({
   payerWallet,
-  targets
+  targets,
 }: {
   payerWallet: string;
   targets: readonly FeeTransferTarget[];
@@ -51,8 +56,18 @@ export async function buildUsdcFeeTransferTransaction({
 
   for (const target of positiveTargets) {
     const owner = address(target.recipientWallet);
-    const destinationAta = await getAssociatedTokenAddress(owner, address(USDC_MINT));
-    instructions.push(getCreateAssociatedTokenAccountIdempotentInstruction({ payer, owner, mint: address(USDC_MINT), ata: destinationAta }));
+    const destinationAta = await getAssociatedTokenAddress(
+      owner,
+      address(USDC_MINT),
+    );
+    instructions.push(
+      getCreateAssociatedTokenAccountIdempotentInstruction({
+        payer,
+        owner,
+        mint: address(USDC_MINT),
+        ata: destinationAta,
+      }),
+    );
     instructions.push(
       getTransferCheckedInstruction({
         source: sourceAta,
@@ -60,23 +75,25 @@ export async function buildUsdcFeeTransferTransaction({
         destination: destinationAta,
         owner: payer,
         amount: target.amountAtomic,
-        decimals: USDC_DECIMALS
-      })
+        decimals: USDC_DECIMALS,
+      }),
     );
   }
 
-  const latestBlockhash = await rpcRequest<LatestBlockhashResult["value"]>("getLatestBlockhash", [
-    { commitment: "confirmed" }
-  ]);
+  const latestBlockhashResult = await rpcRequest<LatestBlockhashResult>(
+    "getLatestBlockhash",
+    [{ commitment: "confirmed" }],
+  );
+  const latestBlockhash = parseLatestBlockhashRpcResult(latestBlockhashResult);
   const message = appendTransactionMessageInstructions(
     instructions,
     setTransactionMessageLifetimeUsingBlockhash(
-      {
-        blockhash: latestBlockhash.blockhash as Blockhash,
-        lastValidBlockHeight: BigInt(latestBlockhash.lastValidBlockHeight)
-      },
-      setTransactionMessageFeePayer(payer, createTransactionMessage({ version: 0 }))
-    )
+      latestBlockhash,
+      setTransactionMessageFeePayer(
+        payer,
+        createTransactionMessage({ version: STRATIN_TRANSACTION_VERSION }),
+      ),
+    ),
   );
 
   return compileTransaction(message);
@@ -86,7 +103,11 @@ async function getAssociatedTokenAddress(owner: Address, mint: Address) {
   const addressEncoder = getAddressEncoder();
   const [ata] = await getProgramDerivedAddress({
     programAddress: ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
-    seeds: [addressEncoder.encode(owner), addressEncoder.encode(SPL_TOKEN_PROGRAM_ADDRESS), addressEncoder.encode(mint)]
+    seeds: [
+      addressEncoder.encode(owner),
+      addressEncoder.encode(SPL_TOKEN_PROGRAM_ADDRESS),
+      addressEncoder.encode(mint),
+    ],
   });
   return ata;
 }
@@ -95,7 +116,7 @@ function getCreateAssociatedTokenAccountIdempotentInstruction({
   payer,
   ata,
   owner,
-  mint
+  mint,
 }: {
   payer: Address;
   ata: Address;
@@ -110,9 +131,9 @@ function getCreateAssociatedTokenAccountIdempotentInstruction({
       { address: owner, role: AccountRole.READONLY },
       { address: mint, role: AccountRole.READONLY },
       { address: SYSTEM_PROGRAM_ADDRESS, role: AccountRole.READONLY },
-      { address: SPL_TOKEN_PROGRAM_ADDRESS, role: AccountRole.READONLY }
+      { address: SPL_TOKEN_PROGRAM_ADDRESS, role: AccountRole.READONLY },
     ],
-    data: new Uint8Array([1])
+    data: new Uint8Array([1]),
   };
 }
 
@@ -122,7 +143,7 @@ function getTransferCheckedInstruction({
   destination,
   owner,
   amount,
-  decimals
+  decimals,
 }: {
   source: Address;
   mint: Address;
@@ -143,8 +164,8 @@ function getTransferCheckedInstruction({
       { address: source, role: AccountRole.WRITABLE },
       { address: mint, role: AccountRole.READONLY },
       { address: destination, role: AccountRole.WRITABLE },
-      { address: owner, role: AccountRole.READONLY_SIGNER }
+      { address: owner, role: AccountRole.READONLY_SIGNER },
     ],
-    data
+    data,
   };
 }

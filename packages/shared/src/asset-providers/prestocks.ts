@@ -1,0 +1,105 @@
+import { USDC_MINT, type TokenizedEquityAsset } from "./types";
+
+const COMMON = {
+  issuer: "PreStocks",
+  providerId: "prestocks",
+  marketSegment: "private-company",
+  metadataSource: "https://prestocks.com/api/prestocks",
+  tokenProgram: "token-2022",
+  decimals: 9,
+  assetClass: "tokenized-equity",
+  priceSource: "prestocks-api+jupiter-quote-review",
+} as const;
+
+const review = (outAmountAtomic: string, routeLabels: string[]) => ({
+  provider: "jupiter-lite",
+  checkedAt: "2026-09-23T17:30:00Z",
+  inputMint: USDC_MINT,
+  inputAmountAtomic: "10000000",
+  outAmountAtomic,
+  routeLabels,
+  status: "quoted" as const,
+});
+
+export const PRESTOCKS_ASSETS = [
+  {
+    ...COMMON,
+    mint: "PresTj4Yc2bAR197Er7wz4UUKSfqt6FryBEdAriBoQB",
+    symbol: "ANDURIL",
+    underlyingSymbol: "ANDURIL",
+    name: "Anduril PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/anduril.png?cachebust=1",
+    liquidityReview: review("65906915", [
+      "Manifest",
+      "Raydium CLMM",
+      "Meteora DLMM",
+    ]),
+  },
+  {
+    ...COMMON,
+    mint: "Pren1FvFX6J3E4kXhJuCiAD5aDmGEb7qJRncwA8Lkhw",
+    symbol: "ANTHROPIC",
+    underlyingSymbol: "ANTHROPIC",
+    name: "Anthropic PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/anthropic.png?cachebust=1",
+    liquidityReview: review("9732709", ["Manifest", "Raydium CLMM"]),
+  },
+  {
+    ...COMMON,
+    mint: "PreZad18qfPtbxNpMtMuAuX2zVpvkEU8DnJx56faCWd",
+    symbol: "FIGUREAI",
+    underlyingSymbol: "FIGUREAI",
+    name: "Figure AI PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/figureai.png?cachebust=1",
+    liquidityReview: review("55364574", ["Manifest"]),
+  },
+  {
+    ...COMMON,
+    mint: "PreLWGkkeqG1s4HEfFZSy9moCrJ7btsHuUtfcCeoRua",
+    symbol: "KALSHI",
+    underlyingSymbol: "KALSHI",
+    name: "Kalshi PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/kalshi.png?cachebust=1",
+    liquidityReview: review("11430328", [
+      "Manifest",
+      "Raydium CLMM",
+      "Meteora DLMM",
+    ]),
+  },
+  {
+    ...COMMON,
+    mint: "PrekqLJvJ3qVdXmBGDiexvwUTF4rLFDa6HWS4HJbw9S",
+    symbol: "NEURALINK",
+    underlyingSymbol: "NEURALINK",
+    name: "Neuralink PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/neuralink.png?cachebust=1",
+    liquidityReview: review("22706422", ["Manifest"]),
+  },
+  {
+    ...COMMON,
+    mint: "PreweJYECqtQwBtpxHL171nL2K6umo692gTm7Q3rpgF",
+    symbol: "OPENAI",
+    underlyingSymbol: "OPENAI",
+    name: "OpenAI PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/openai.png?cachebust=1",
+    liquidityReview: review("5084756", ["Manifest"]),
+  },
+  {
+    ...COMMON,
+    mint: "Pre8AREmFPtoJFT8mQSXQLh56cwJmM7CFDRuoGBZiUP",
+    symbol: "POLYMARKET",
+    underlyingSymbol: "POLYMARKET",
+    name: "Polymarket PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/polymarket.png?cachebust=1",
+    liquidityReview: review("68348987", ["Manifest"]),
+  },
+  {
+    ...COMMON,
+    mint: "PreANxuXjsy2pvisWWMNB6YaJNzr7681wJJr2rHsfTh",
+    symbol: "SPACEX",
+    underlyingSymbol: "SPACEX",
+    name: "SpaceX PreStocks",
+    iconUrl: "https://www.prestocks.com/logos/spacex.png?cachebust=1",
+    liquidityReview: review("17345648", ["Meteora DLMM"]),
+  },
+] as const satisfies readonly TokenizedEquityAsset[];

@@ -1,6 +1,10 @@
+ENVIRONMENT=development
 DATABASE_URL=
 SOLANA_RPC_URL=
 REGISTRY_SOLANA_RPC_URL=https://api.devnet.solana.com
+REGISTRY_NETWORK=devnet
+REGISTRY_HELIUS_API_KEY=
+REGISTRY_HELIUS_RPC_BASE_URL=https://devnet.helius-rpc.com/
 JUPITER_SWAP_API_BASE_URL=https://lite-api.jup.ag/swap/v1
 ENTRY_FEE_BPS=25
 REBALANCE_FEE_BPS=10

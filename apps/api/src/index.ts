@@ -7,7 +7,7 @@ import {
   publishRebalanceSchema,
   recordInvestmentSchema,
   recordRebalanceSchema,
-  SUPPORTED_TOKENIZED_EQUITIES
+  STRATEGY_SELECTABLE_ASSETS,
 } from "@stratin/shared";
 import { getDb, type Env } from "./db";
 import { navIntervalStart, processNavCron } from "./nav-cron";
@@ -24,8 +24,15 @@ import {
   publishRebalance,
   recordInvestment,
   recordRebalance,
-  refreshStrategyNav
+  refreshStrategyNav,
+  setStrategyVersionVerificationStatus,
 } from "./repository";
+import {
+  verifyRegistryCommitment,
+  type RegistryNetwork,
+} from "./registry-verification";
+import { getRegistryRpcUrl } from "./registry-rpc";
+import type { StrategyDetail, StrategyVersionDto } from "@stratin/shared";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -38,8 +45,8 @@ app.use(
   cors({
     origin: ["http://localhost:3000", "http://localhost:3001"],
     allowHeaders: ["Content-Type"],
-    allowMethods: ["GET", "POST", "OPTIONS"]
-  })
+    allowMethods: ["GET", "POST", "OPTIONS"],
+  }),
 );
 
 app.onError((error, c) => {
@@ -51,13 +58,13 @@ app.get("/health", (c) => {
   return c.json({
     ok: true,
     service: "stratin-api",
-    scope: "stage-1-scaffold"
+    scope: "stage-1-scaffold",
   });
 });
 
 app.get("/assets", (c) => {
   return c.json({
-    assets: SUPPORTED_TOKENIZED_EQUITIES
+    assets: STRATEGY_SELECTABLE_ASSETS,
   });
 });
 
@@ -68,8 +75,18 @@ app.get("/config/fees", (c) => {
 
 app.post("/strategies", async (c) => {
   const body = createStrategySchema.parse(await c.req.json());
-  const strategy = await createStrategy(getDb(c.env), body, getPriceProvider(c.env));
-  return c.json({ strategy }, 201);
+  const db = getDb(c.env);
+  let strategy = await createStrategy(db, body, getPriceProvider(c.env));
+  const registryVerification = body.registryCommitment
+    ? await verifyAndPersistRegistryVersion(
+        db,
+        c.env,
+        strategy,
+        strategy.versions?.[0],
+      )
+    : undefined;
+  strategy = (await getStrategy(db, strategy.id)) ?? strategy;
+  return c.json({ strategy, registryVerification }, 201);
 });
 
 app.get("/strategies", async (c) => {
@@ -88,7 +105,11 @@ app.get("/strategies/:id", async (c) => {
 });
 
 app.post("/strategies/:id/nav/refresh", async (c) => {
-  const snapshot = await refreshStrategyNav(getDb(c.env), c.req.param("id"), getPriceProvider(c.env));
+  const snapshot = await refreshStrategyNav(
+    getDb(c.env),
+    c.req.param("id"),
+    getPriceProvider(c.env),
+  );
   return c.json({ snapshot });
 });
 
@@ -98,54 +119,70 @@ app.get("/strategies/:id/versions", async (c) => {
 });
 
 app.get("/strategies/:id/registry/verify", async (c) => {
-  const strategy = await getStrategy(getDb(c.env), c.req.param("id"));
+  const db = getDb(c.env);
+  const strategy = await getStrategy(db, c.req.param("id"));
 
   if (!strategy) {
     return c.json({ error: "Strategy not found." }, 404);
   }
 
-  const rpcUrl = c.env.REGISTRY_SOLANA_RPC_URL ?? c.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
   const results = [];
   for (const version of strategy.versions ?? []) {
-    const canonicalHash = await hashStrategyAllocation(version.allocations);
-    const onChainHash = version.registryVersionPda
-      ? await fetchRegistryVersionHash(rpcUrl, version.registryVersionPda)
-      : null;
-
-    results.push({
-      version: version.version,
-      canonicalHash,
-      dbHash: version.allocationHash,
-      onChainHash,
-      status:
-        version.registryVersionPda && onChainHash && canonicalHash === version.allocationHash && canonicalHash === onChainHash
-          ? "MATCH"
-          : "MISMATCH"
-    });
+    results.push(
+      await verifyAndPersistRegistryVersion(db, c.env, strategy, version),
+    );
   }
 
-  return c.json({ strategyId: strategy.id, registryStrategyPda: strategy.registryStrategyPda, results });
+  return c.json({
+    strategyId: strategy.id,
+    registryStrategyPda: strategy.registryStrategyPda,
+    results,
+  });
 });
 
 app.post("/strategies/:id/rebalances", async (c) => {
   const body = publishRebalanceSchema.parse(await c.req.json());
-  const strategy = await publishRebalance(getDb(c.env), c.req.param("id"), body, getPriceProvider(c.env));
-  return c.json({ strategy }, 201);
+  const db = getDb(c.env);
+  let strategy = await publishRebalance(
+    db,
+    c.req.param("id"),
+    body,
+    getPriceProvider(c.env),
+  );
+  const version = strategy.versions?.find(
+    (item) => item.version === strategy.currentVersion,
+  );
+  const registryVerification = body.registryCommitment
+    ? await verifyAndPersistRegistryVersion(db, c.env, strategy, version)
+    : undefined;
+  strategy = (await getStrategy(db, strategy.id)) ?? strategy;
+  return c.json({ strategy, registryVerification }, 201);
 });
 
 app.get("/strategists/:wallet/strategies", async (c) => {
-  const strategies = await listStrategistStrategies(getDb(c.env), c.req.param("wallet"));
+  const strategies = await listStrategistStrategies(
+    getDb(c.env),
+    c.req.param("wallet"),
+  );
   return c.json({ strategies });
 });
 
 app.post("/strategies/:id/investments", async (c) => {
   const body = recordInvestmentSchema.parse(await c.req.json());
-  const investment = await recordInvestment(getDb(c.env), c.req.param("id"), body);
+  const investment = await recordInvestment(
+    getDb(c.env),
+    c.req.param("id"),
+    body,
+    parseFeeConfig(c.env),
+  );
   return c.json({ investment }, 201);
 });
 
 app.get("/investors/:wallet/investments", async (c) => {
-  const investments = await listInvestorInvestments(getDb(c.env), c.req.param("wallet"));
+  const investments = await listInvestorInvestments(
+    getDb(c.env),
+    c.req.param("wallet"),
+  );
   return c.json({ investments });
 });
 
@@ -161,7 +198,12 @@ app.get("/investments/:id", async (c) => {
 
 app.post("/investments/:id/rebalances", async (c) => {
   const body = recordRebalanceSchema.parse(await c.req.json());
-  const investment = await recordRebalance(getDb(c.env), c.req.param("id"), body);
+  const investment = await recordRebalance(
+    getDb(c.env),
+    c.req.param("id"),
+    body,
+    parseFeeConfig(c.env),
+  );
   return c.json({ investment }, 201);
 });
 
@@ -171,7 +213,9 @@ async function refreshActiveStrategiesNav(env: Env, scheduledAt = new Date()) {
   const intervalStart = navIntervalStart(scheduledAt);
   const strategyIds = await listActiveStrategyIds(db);
   const results = await processNavCron(strategyIds, (strategyId) =>
-    refreshStrategyNav(db, strategyId, priceProvider, intervalStart).then(() => undefined)
+    refreshStrategyNav(db, strategyId, priceProvider, intervalStart).then(
+      () => undefined,
+    ),
   );
 
   console.log(
@@ -180,42 +224,119 @@ async function refreshActiveStrategiesNav(env: Env, scheduledAt = new Date()) {
       activeStrategies: strategyIds.length,
       succeeded: results.filter((result) => result.ok).length,
       failed: results.filter((result) => !result.ok).length,
-      intervalStart: intervalStart.toISOString()
-    })
+      intervalStart: intervalStart.toISOString(),
+    }),
   );
 
   return results;
 }
 
-async function fetchRegistryVersionHash(rpcUrl: string, versionPda: string) {
-  const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method: "getAccountInfo",
-      params: [versionPda, { encoding: "base64", commitment: "confirmed" }]
-    })
-  });
-  const payload = (await response.json()) as {
-    result?: { value?: { data?: [string, string] } | null };
-    error?: { message?: string };
-  };
-
-  if (!response.ok || payload.error) {
-    throw new Error(payload.error?.message ?? `Registry verification RPC failed with status ${response.status}.`);
+async function verifyAndPersistRegistryVersion(
+  db: ReturnType<typeof getDb>,
+  env: Env,
+  strategy: StrategyDetail,
+  version: StrategyVersionDto | undefined,
+) {
+  if (
+    !version ||
+    !strategy.registryStrategyIdHex ||
+    !strategy.registryStrategyPda ||
+    !version.registryVersionPda
+  ) {
+    return {
+      version: version?.version,
+      status: "UNVERIFIED" as const,
+      error: "Registry metadata is incomplete.",
+    };
   }
 
-  const encoded = payload.result?.value?.data?.[0];
-  if (!encoded) {
-    return null;
+  const currentVersion = strategy.versions?.find(
+    (item) => item.version === strategy.currentVersion,
+  );
+  if (!currentVersion) {
+    await setStrategyVersionVerificationStatus(
+      db,
+      strategy.id,
+      version.version,
+      "FAILED",
+    );
+    return {
+      version: version.version,
+      status: "MISMATCH" as const,
+      error: "Current strategy version is missing.",
+    };
   }
 
-  const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0));
-  const hashOffset = 8 + 32 + 32 + 4;
-  const hash = bytes.slice(hashOffset, hashOffset + 32);
-  return [...hash].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  try {
+    const rpcUrl = getRegistryRpcUrl(env);
+    const network = parseRegistryNetwork(env.REGISTRY_NETWORK);
+    const canonicalHash = await hashStrategyAllocation(version.allocations);
+    const currentCanonicalHash = await hashStrategyAllocation(
+      currentVersion.allocations,
+    );
+    if (
+      version.allocationHash !== canonicalHash ||
+      currentVersion.allocationHash !== currentCanonicalHash
+    ) {
+      throw new Error(
+        "Stored allocation hash does not match canonical database allocations.",
+      );
+    }
+
+    await verifyRegistryCommitment({
+      rpcUrl,
+      network,
+      creatorWallet: strategy.creatorWallet,
+      strategyIdHex: strategy.registryStrategyIdHex,
+      strategyPda: strategy.registryStrategyPda,
+      versionPda: version.registryVersionPda,
+      expectedVersion: version.version,
+      expectedAllocationHash: canonicalHash,
+      expectedCurrentVersion: strategy.currentVersion,
+      expectedCurrentAllocationHash: currentCanonicalHash,
+    });
+    await setStrategyVersionVerificationStatus(
+      db,
+      strategy.id,
+      version.version,
+      "VERIFIED",
+    );
+    return {
+      version: version.version,
+      canonicalHash,
+      status: "MATCH" as const,
+    };
+  } catch (error) {
+    await setStrategyVersionVerificationStatus(
+      db,
+      strategy.id,
+      version.version,
+      "FAILED",
+    );
+    return {
+      version: version.version,
+      status: "MISMATCH" as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Registry verification failed.",
+    };
+  }
+}
+
+function parseRegistryNetwork(value: string | undefined): RegistryNetwork {
+  const network = value?.trim() || "devnet";
+  if (
+    network === "devnet" ||
+    network === "mainnet-beta" ||
+    network === "testnet" ||
+    network === "localnet"
+  ) {
+    return network;
+  }
+  throw new Error(
+    "REGISTRY_NETWORK must be devnet, mainnet-beta, testnet, or localnet.",
+  );
 }
 
 export { app, navIntervalStart, processNavCron, refreshActiveStrategiesNav };
@@ -224,7 +345,13 @@ export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext) {
     return app.fetch(request, env, ctx);
   },
-  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(refreshActiveStrategiesNav(env, new Date(controller.scheduledTime)));
-  }
+  async scheduled(
+    controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext,
+  ) {
+    ctx.waitUntil(
+      refreshActiveStrategiesNav(env, new Date(controller.scheduledTime)),
+    );
+  },
 };
