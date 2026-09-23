@@ -7,7 +7,13 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-strategy_registry = "2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX"
+strategy_registry = "3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs"
+
+[programs.devnet]
+strategy_registry = "3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs"
+
+[programs.mainnet]
+strategy_registry = "3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs"
 
 [provider]
 cluster = "localnet"

@@ -16,7 +16,7 @@ import { registryRpcRequest as rpcRequest } from "./registry-rpc";
 import { STRATIN_TRANSACTION_VERSION } from "./transaction-version";
 
 export const STRATEGY_REGISTRY_PROGRAM_ID =
-  "2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX";
+  "3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs";
 
 const SYSTEM_PROGRAM_ADDRESS = address("11111111111111111111111111111111");
 const CREATE_STRATEGY_DISCRIMINATOR = Uint8Array.from([

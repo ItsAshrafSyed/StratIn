@@ -20,7 +20,7 @@ import {
 import type { PriceProvider } from "../packages/strategy-engine/src";
 
 const PROGRAM_ID = new anchor.web3.PublicKey(
-  "2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX",
+  "3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs",
 );
 const DEVNET_RPC_URL = "https://api.devnet.solana.com";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");

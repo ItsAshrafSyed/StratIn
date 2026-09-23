@@ -83,7 +83,7 @@ programs/strategy-registry
 Program ID:
 
 ```text
-2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX
+3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs
 ```
 
 Instructions:

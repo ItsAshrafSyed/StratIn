@@ -5,7 +5,7 @@ import {
 } from "@solana/kit";
 
 export const STRATEGY_REGISTRY_PROGRAM_ID =
-  "2zDw6KYfMJRMVfNvShy5XHM1t6tvvTYEoDeLZ87VTEFX";
+  "3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs";
 
 export type RegistryNetwork =
   "devnet" | "mainnet-beta" | "testnet" | "localnet";
