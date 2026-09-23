@@ -42,22 +42,16 @@ docs                             architecture and validation records
 
 ## Local development
 
-Install dependencies with `pnpm install --frozen-lockfile`, copy the checked-in environment examples, and configure required values locally. Never commit credentials or signer files.
+Install dependencies with `pnpm install --frozen-lockfile`, copy the environment example belonging to the component you are running, and configure required values locally. Never commit credentials or signer files.
 
-Environment variable names:
+```text
+.env.example                 repository devnet integration script
+apps/api/.dev.vars.example  local Cloudflare Worker
+apps/web/.env.example       local Next.js application
+packages/db/.env.example    Drizzle migration commands
+```
 
-- `DATABASE_URL`
-- `ALLOWED_ORIGINS`
-- `SOLANA_RPC_URL` or `HELIUS_API_KEY`
-- `HELIUS_RPC_BASE_URL`
-- `REGISTRY_SOLANA_RPC_URL` and `REGISTRY_NETWORK`
-- `NEXT_PUBLIC_SOLANA_RPC_PROXY_URL` and `NEXT_PUBLIC_SOLANA_RPC_URL`
-- `NEXT_PUBLIC_REGISTRY_SOLANA_RPC_PROXY_URL`
-- `NEXT_PUBLIC_WALLET_CHAIN`
-- `JUPITER_SWAP_API_BASE_URL` and `NEXT_PUBLIC_JUPITER_SWAP_API_BASE_URL`
-- `NEXT_PUBLIC_STRATIN_API_URL`
-- `ENTRY_FEE_BPS`, `REBALANCE_FEE_BPS`, `PROTOCOL_FEE_SHARE_BPS`, and `PROTOCOL_TREASURY`
-- `STRATIN_REGISTRY_SIGNER_PATH` only for the explicit devnet integration script
+Copy examples to `.env`, `.dev.vars`, or `.env.local` as indicated by their comments. Those real environment files are ignored by Git.
 
 Start the API on port `8788` and web app on port `3001`:
 

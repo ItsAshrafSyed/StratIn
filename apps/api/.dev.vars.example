@@ -1,12 +1,6 @@
-ENVIRONMENT=development
+# Local Cloudflare Worker secrets. Copy to apps/api/.dev.vars.
+# The real .dev.vars file is ignored by Git.
+
 DATABASE_URL=
-SOLANA_RPC_URL=
 REGISTRY_SOLANA_RPC_URL=https://api.devnet.solana.com
-REGISTRY_NETWORK=devnet
-REGISTRY_HELIUS_API_KEY=
-REGISTRY_HELIUS_RPC_BASE_URL=https://devnet.helius-rpc.com/
-JUPITER_SWAP_API_BASE_URL=https://lite-api.jup.ag/swap/v1
-ENTRY_FEE_BPS=25
-REBALANCE_FEE_BPS=10
-PROTOCOL_FEE_SHARE_BPS=2000
-PROTOCOL_TREASURY=stiFExnwsWbHxrB5CqCSBWMbLjgB8hVLURtUsyAr3RT
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
