@@ -517,7 +517,7 @@ export default function StrategyDetailPage({
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
-      <Link className="text-sm text-slate-300 hover:text-white" href="/explore">
+      <Link className="text-sm text-slate-300 hover:text-white" href="/">
         {"<-"} Explore
       </Link>
       <section className="mt-5 grid gap-6 lg:grid-cols-[1fr_24rem]">

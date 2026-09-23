@@ -18,8 +18,16 @@ export const strategyAllocationSchema = z.object({
 
 export const createStrategySchema = z.object({
   creatorWallet: z.string().min(32),
-  name: z.string().trim().min(2).max(80),
-  description: z.string().trim().min(8).max(500),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Strategy name must be at least 2 characters.")
+    .max(80, "Strategy name must be at most 80 characters."),
+  description: z
+    .string()
+    .trim()
+    .min(8, "Description must be at least 8 characters.")
+    .max(500, "Description must be at most 500 characters."),
   allocations: z.array(strategyAllocationSchema).min(1),
   registryCommitment: z
     .object({

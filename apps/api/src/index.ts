@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { ZodError } from "zod";
 import {
   createStrategySchema,
   hashStrategyAllocation,
@@ -53,6 +54,17 @@ app.use(
 );
 
 app.onError((error, c) => {
+  if (error instanceof ZodError) {
+    return c.json(
+      {
+        error:
+          error.issues[0]?.message ?? "The request contains invalid data.",
+        issues: error.issues,
+      },
+      400,
+    );
+  }
+
   console.error(JSON.stringify({ message: error.message, stack: error.stack }));
   return c.json({ error: error.message }, 500);
 });

@@ -1,234 +1,106 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  useConnect,
-  useConnectedWallet,
-  useDisconnect,
-  useIsWalletReady,
-  useWalletStatus,
-  useWallets,
-} from "@solana/kit-plugin-wallet/react";
-import { SUPPORTED_TOKENIZED_EQUITIES } from "@stratin/shared";
+import { useEffect, useState } from "react";
+import type { StrategyListItem } from "@stratin/shared";
+import { listStrategies } from "./lib/api";
+import { allocationSymbols } from "./lib/assets";
 import { shortenAddress } from "./lib/format";
-import { solanaClient } from "./providers";
 
-export default function Home() {
-  const [hasMounted, setHasMounted] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [walletError, setWalletError] = useState<string | null>(null);
-  const wallets = useWallets(solanaClient);
-  const connectedWallet = useConnectedWallet(solanaClient);
-  const isWalletReady = useIsWalletReady(solanaClient);
-  const walletStatus = useWalletStatus(solanaClient);
-  const { dispatchAsync: connectSelectedWallet, isRunning: isConnecting } =
-    useConnect(solanaClient);
-  const { dispatchAsync: disconnectWallet, isRunning: isDisconnecting } =
-    useDisconnect(solanaClient);
-  const walletAddress = connectedWallet?.account.address ?? null;
-  const equities = useMemo(
-    () =>
-      SUPPORTED_TOKENIZED_EQUITIES.filter(
-        (asset) => asset.assetClass === "tokenized-equity",
-      ),
-    [],
-  );
+export default function HomePage() {
+  const [strategies, setStrategies] = useState<StrategyListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setHasMounted(true);
+    void listStrategies()
+      .then((response) => setStrategies(response.strategies))
+      .catch((loadError) =>
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Failed to load strategies.",
+        ),
+      )
+      .finally(() => setIsLoading(false));
   }, []);
 
-  async function handleConnectWallet(wallet: (typeof wallets)[number]) {
-    setWalletError(null);
-
-    if (!isWalletReady) {
-      setWalletError("Wallet discovery is still warming up.");
-      return;
-    }
-
-    try {
-      await connectSelectedWallet(wallet);
-      setIsWalletModalOpen(false);
-    } catch (error) {
-      setWalletError(
-        error instanceof Error ? error.message : "Wallet connection failed.",
-      );
-    }
-  }
-
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8">
-      <header className="flex items-center justify-between gap-4 border-b border-white/10 pb-5">
+    <main className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-teal-300">
-            StratIn
+          <h1 className="text-3xl font-semibold text-white">Explore</h1>
+          <p className="mt-2 text-sm text-slate-300">
+            Published tokenized-equity strategies.
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-            Tokenized-equity strategies, held in your wallet.
-          </h1>
-          <Link
-            className="mt-3 inline-flex rounded-md border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
-            href="/execution-spike"
-          >
-            Open execution spike
-          </Link>
         </div>
-
-        {!hasMounted ? (
-          <button
-            className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 opacity-60 shadow-lg shadow-teal-950/30"
-            disabled
-            type="button"
-          >
-            Finding wallets
-          </button>
-        ) : walletAddress ? (
-          <button
-            className="rounded-md border border-teal-300/40 bg-teal-300/10 px-4 py-2 text-sm font-medium text-teal-100"
-            disabled={isDisconnecting}
-            onClick={() => void disconnectWallet()}
-            type="button"
-          >
-            {shortenAddress(walletAddress)}
-          </button>
-        ) : (
-          <button
-            className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-teal-950/30 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={!isWalletReady}
-            onClick={() => setIsWalletModalOpen(true)}
-            type="button"
-          >
-            {isWalletReady ? "Connect Wallet" : "Finding wallets"}
-          </button>
-        )}
-      </header>
-
-      <section className="grid flex-1 items-start gap-6 py-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                Stage 1 Checkpoint
-              </h2>
-              <p className="mt-1 text-sm text-slate-300">
-                Open StratIn, connect Phantom, see wallet address.
-              </p>
-            </div>
-            <div className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-slate-300">
-              {walletAddress ? "Connected" : "Waiting"}
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-md bg-black/30 p-4">
-            <p className="text-sm text-slate-400">Connected wallet</p>
-            <p className="mt-2 break-all text-base font-medium text-white">
-              {walletAddress ?? "No wallet connected"}
-            </p>
-            <div className="mt-4 grid gap-2 text-sm text-slate-400 sm:grid-cols-3">
-              <p>Status: {hasMounted ? walletStatus : "pending"}</p>
-              <p>Wallets found: {hasMounted ? wallets.length : 0}</p>
-              <p>
-                Available:{" "}
-                {hasMounted && wallets.length > 0
-                  ? wallets.map((wallet) => wallet.name).join(", ")
-                  : "none"}
-              </p>
-            </div>
-            {walletError ? (
-              <p className="mt-3 text-sm text-red-300">{walletError}</p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                Stage 2 Asset Registry
-              </h2>
-              <p className="mt-1 text-sm text-slate-300">
-                Issuer-agnostic model, limited reviewed shortlist.
-              </p>
-            </div>
-            <span className="rounded-full bg-amber-300/15 px-3 py-1 text-xs font-medium text-amber-100">
-              Review
-            </span>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {equities.map((asset) => (
-              <div
-                className="flex items-center justify-between gap-4 rounded-md border border-white/10 bg-black/20 px-4 py-3"
-                key={asset.mint}
-              >
-                <div>
-                  <p className="font-medium text-white">{asset.symbol}</p>
-                  <p className="text-sm text-slate-400">{asset.name}</p>
-                </div>
-                <p className="text-right text-xs text-slate-400">
-                  {asset.issuer}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {hasMounted && isWalletModalOpen ? (
-        <div
-          aria-modal="true"
-          className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 backdrop-blur-sm"
-          role="dialog"
+        <Link
+          className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950"
+          href="/create"
         >
-          <div className="w-full max-w-sm rounded-lg border border-white/10 bg-[#111217] p-5 shadow-2xl shadow-black/40">
+          + Create Strategy
+        </Link>
+      </div>
+      {isLoading ? (
+        <p className="mt-6 text-slate-300">Loading strategies...</p>
+      ) : null}
+      {error ? <p className="mt-6 text-red-300">{error}</p> : null}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {strategies.map((strategy) => (
+          <Link
+            className="rounded-lg border border-white/10 bg-white/[0.04] p-5 hover:border-teal-300/40"
+            href={`/strategy/${strategy.id}`}
+            key={strategy.id}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">
-                  Connect Wallet
+                <h2 className="text-xl font-semibold text-white">
+                  {strategy.name}
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Choose an installed Solana wallet.
+                  by {shortenAddress(strategy.creatorWallet)}
                 </p>
               </div>
-              <button
-                aria-label="Close wallet modal"
-                className="grid h-8 w-8 place-items-center rounded-md border border-white/10 text-lg leading-none text-slate-300 hover:bg-white/10"
-                onClick={() => setIsWalletModalOpen(false)}
-                type="button"
-              >
-                x
-              </button>
+              <span className="text-sm text-slate-300">
+                View Strategy {"->"}
+              </span>
             </div>
-
-            <div className="mt-5 space-y-2">
-              {wallets.length > 0 ? (
-                wallets.map((wallet) => (
-                  <button
-                    className="flex w-full items-center justify-between rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-medium text-white hover:border-teal-300/50 hover:bg-teal-300/10 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isConnecting || !isWalletReady}
-                    key={wallet.name}
-                    onClick={() => void handleConnectWallet(wallet)}
-                    type="button"
-                  >
-                    <span>{wallet.name}</span>
-                    <span className="text-xs text-slate-400">
-                      Wallet Standard
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <div className="rounded-md border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
-                  No Solana wallets were discovered in this browser.
-                </div>
-              )}
+            <p className="mt-4 text-sm text-slate-300">
+              {strategy.description}
+            </p>
+            <p className="mt-4 text-sm text-teal-100">
+              {allocationSymbols(strategy.allocations)}
+            </p>
+            <div className="mt-5 grid grid-cols-4 gap-2 text-sm text-slate-400">
+              <p>
+                1W
+                <br />
+                <span className="text-white">-</span>
+              </p>
+              <p>
+                1M
+                <br />
+                <span className="text-white">-</span>
+              </p>
+              <p>
+                3M
+                <br />
+                <span className="text-white">-</span>
+              </p>
+              <p>
+                ALL
+                <br />
+                <span className="text-white">-</span>
+              </p>
             </div>
-
-            {walletError ? (
-              <p className="mt-4 text-sm text-red-300">{walletError}</p>
-            ) : null}
-          </div>
-        </div>
+            <p className="mt-5 text-sm text-slate-300">
+              Investors {strategy.investorCount}
+            </p>
+          </Link>
+        ))}
+      </div>
+      {!isLoading && strategies.length === 0 ? (
+        <p className="mt-8 text-slate-300">No strategies yet.</p>
       ) : null}
     </main>
   );

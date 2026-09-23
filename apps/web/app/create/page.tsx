@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { getBase58Decoder } from "@solana/kit";
 import {
   STRATEGY_SELECTABLE_ASSETS,
+  createStrategySchema,
   hashStrategyAllocation,
   validateStrategyAllocations,
 } from "@stratin/shared";
@@ -88,7 +89,21 @@ export default function CreateStrategyPage() {
     setPublishStatus(null);
 
     try {
-      validateStrategyAllocations(allocations);
+      const validation = createStrategySchema.safeParse({
+        creatorWallet: walletAddress,
+        name,
+        description,
+        allocations,
+      });
+      if (!validation.success) {
+        throw new Error(
+          validation.error.issues[0]?.message ??
+            "Review the strategy details before publishing.",
+        );
+      }
+
+      const validatedInput = validation.data;
+      validateStrategyAllocations(validatedInput.allocations);
       if (
         !connectedWallet?.signer ||
         !hasSignAndSendTransactions(connectedWallet.signer)
@@ -101,7 +116,9 @@ export default function CreateStrategyPage() {
         connectedWallet.supportedTransactionVersions,
       );
 
-      const allocationHash = await hashStrategyAllocation(allocations);
+      const allocationHash = await hashStrategyAllocation(
+        validatedInput.allocations,
+      );
       setPublishStatus("Requesting strategy-registry signature...");
       const commitment = await buildCreateStrategyCommitmentTransaction({
         creatorWallet: walletAddress,
@@ -125,10 +142,7 @@ export default function CreateStrategyPage() {
       await confirmRegistrySignature(transactionSignature);
       setPublishStatus("Persisting verified strategy...");
       const response = await createStrategy({
-        creatorWallet: walletAddress,
-        name,
-        description,
-        allocations,
+        ...validatedInput,
         registryCommitment: {
           strategyIdHex: commitment.strategyIdHex ?? "",
           allocationHash,
@@ -139,10 +153,15 @@ export default function CreateStrategyPage() {
       });
       router.push(`/strategy/${response.strategy.id}`);
     } catch (publishError) {
-      setError(
+      setPublishStatus(null);
+      const message =
         publishError instanceof Error
           ? publishError.message
-          : "Strategy publish failed.",
+          : "Strategy publish failed.";
+      setError(
+        /reject|declin|denied|cancel/i.test(message)
+          ? "Signature request was rejected in your wallet."
+          : message,
       );
     } finally {
       setIsPublishing(false);
