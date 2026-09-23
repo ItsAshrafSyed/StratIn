@@ -47,11 +47,12 @@ Install dependencies with `pnpm install --frozen-lockfile`, copy the checked-in 
 Environment variable names:
 
 - `DATABASE_URL`
+- `ALLOWED_ORIGINS`
 - `SOLANA_RPC_URL` or `HELIUS_API_KEY`
 - `HELIUS_RPC_BASE_URL`
 - `REGISTRY_SOLANA_RPC_URL` and `REGISTRY_NETWORK`
 - `NEXT_PUBLIC_SOLANA_RPC_PROXY_URL` and `NEXT_PUBLIC_SOLANA_RPC_URL`
-- `NEXT_PUBLIC_REGISTRY_SOLANA_RPC_PROXY_URL`, `NEXT_PUBLIC_REGISTRY_SOLANA_RPC_URL`, and `NEXT_PUBLIC_REGISTRY_NETWORK`
+- `NEXT_PUBLIC_REGISTRY_SOLANA_RPC_PROXY_URL`
 - `NEXT_PUBLIC_WALLET_CHAIN`
 - `JUPITER_SWAP_API_BASE_URL` and `NEXT_PUBLIC_JUPITER_SWAP_API_BASE_URL`
 - `NEXT_PUBLIC_STRATIN_API_URL`
@@ -66,6 +67,20 @@ pnpm --filter @stratin/web dev
 ```
 
 Registry RPC and execution RPC are intentionally separate. Devnet registry testing can use `REGISTRY_SOLANA_RPC_URL` on devnet while execution remains on mainnet for Jupiter/tokenized-equity routes.
+
+For a Worker deployment, configure `DATABASE_URL`, `REGISTRY_SOLANA_RPC_URL`, and `ALLOWED_ORIGINS` as Worker secrets before deploying. `ALLOWED_ORIGINS` is a comma-separated exact allowlist containing the production Vercel origin and only the preview origins that should be able to call the API. The automated NAV refresh runs hourly.
+
+```bash
+pnpm --filter @stratin/api exec wrangler secret put DATABASE_URL
+pnpm --filter @stratin/api exec wrangler secret put REGISTRY_SOLANA_RPC_URL
+pnpm --filter @stratin/api exec wrangler secret put ALLOWED_ORIGINS
+pnpm --filter @stratin/api run deploy:dry-run
+pnpm --filter @stratin/api run deploy
+```
+
+Enter secret values only at Wrangler's interactive prompts. Do not place them in the command line or commit them.
+
+For Vercel, the web application requires only `SOLANA_RPC_URL`, `REGISTRY_SOLANA_RPC_URL`, and `NEXT_PUBLIC_STRATIN_API_URL`. The checked-in web environment example documents optional browser overrides, but the application already provides the correct defaults for those values.
 
 ## Testing
 

@@ -11,6 +11,7 @@ import {
   type StrategyDetail,
   type StrategyVersionDto,
 } from "@stratin/shared";
+import { resolveCorsOrigin } from "./cors";
 import { getDb, type Env } from "./db";
 import { navIntervalStart, processNavCron } from "./nav-cron";
 import { JupiterPriceProvider } from "./pricing";
@@ -34,6 +35,7 @@ import {
   type RegistryNetwork,
 } from "./registry-verification";
 import { getRegistryRpcUrl } from "./registry-rpc";
+
 const app = new Hono<{ Bindings: Env }>();
 
 function getPriceProvider(env: Env) {
@@ -43,9 +45,10 @@ function getPriceProvider(env: Env) {
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: (origin, c) => resolveCorsOrigin(origin, c.env.ALLOWED_ORIGINS),
     allowHeaders: ["Content-Type"],
     allowMethods: ["GET", "POST", "OPTIONS"],
+    maxAge: 86400,
   }),
 );
 

@@ -1,5 +1,5 @@
 export function navIntervalStart(date: Date) {
-  const intervalMs = 15 * 60 * 1000;
+  const intervalMs = 60 * 60 * 1000;
   return new Date(Math.floor(date.getTime() / intervalMs) * intervalMs);
 }
 

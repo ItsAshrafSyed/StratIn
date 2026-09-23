@@ -4,7 +4,7 @@ import * as schema from "@stratin/db";
 export type Env = {
   ENVIRONMENT?: string;
   DATABASE_URL?: string;
-  SOLANA_RPC_URL?: string;
+  ALLOWED_ORIGINS?: string;
   REGISTRY_SOLANA_RPC_URL?: string;
   REGISTRY_NETWORK?: string;
   HELIUS_API_KEY?: string;

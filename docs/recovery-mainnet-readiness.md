@@ -29,6 +29,7 @@
 ### Production
 
 - Store `DATABASE_URL`, RPC credentials, and other secrets using the deployment platform's secret facility, not committed configuration.
+- Set `ALLOWED_ORIGINS` to a comma-separated exact allowlist containing the production Vercel origin and only deliberately supported preview origins.
 - Set `REGISTRY_NETWORK` and `REGISTRY_SOLANA_RPC_URL` together and verify the genesis hash during preflight.
 - Configure allowed production web origins and production web/API URLs.
 - Apply all Drizzle migrations to the intended Neon database before traffic.

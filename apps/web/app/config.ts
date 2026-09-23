@@ -28,11 +28,7 @@ export const appConfig = {
   registryRpcProxyUrl:
     process.env.NEXT_PUBLIC_REGISTRY_SOLANA_RPC_PROXY_URL ??
     "/api/registry-rpc",
-  registrySolanaRpcUrl:
-    process.env.NEXT_PUBLIC_REGISTRY_SOLANA_RPC_URL ??
-    "https://api.mainnet-beta.solana.com",
   walletChain: parseWalletChain(process.env.NEXT_PUBLIC_WALLET_CHAIN),
-  registryNetwork: process.env.NEXT_PUBLIC_REGISTRY_NETWORK ?? "mainnet",
   jupiterSwapApiBaseUrl:
     process.env.NEXT_PUBLIC_JUPITER_SWAP_API_BASE_URL ??
     "https://lite-api.jup.ag/swap/v1",

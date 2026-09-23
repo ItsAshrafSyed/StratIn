@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "wrangler dev --port 8788",
+    "deploy": "wrangler deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings=0",

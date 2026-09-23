@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { navIntervalStart, processNavCron } from "./nav-cron";
 
 describe("NAV cron", () => {
-  it("rounds scheduled time down to the 15-minute bucket", () => {
+  it("rounds scheduled time down to the hourly bucket", () => {
     expect(
       navIntervalStart(new Date("2026-09-21T10:37:42.000Z")).toISOString(),
-    ).toBe("2026-09-21T10:30:00.000Z");
+    ).toBe("2026-09-21T10:00:00.000Z");
   });
 
   it("processes active strategy ids", async () => {

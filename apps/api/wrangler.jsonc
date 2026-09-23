@@ -5,17 +5,17 @@
   "compatibility_date": "2026-09-15",
   "compatibility_flags": ["nodejs_compat"],
   "triggers": {
-    "crons": ["*/15 * * * *"],
+    "crons": ["0 * * * *"],
   },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
   },
+  "secrets": {
+    "required": ["DATABASE_URL", "REGISTRY_SOLANA_RPC_URL", "ALLOWED_ORIGINS"],
+  },
   "vars": {
-    "ENVIRONMENT": "development",
-    "DATABASE_URL": "",
-    "SOLANA_RPC_URL": "",
-    "REGISTRY_SOLANA_RPC_URL": "",
+    "ENVIRONMENT": "production",
     "REGISTRY_NETWORK": "devnet",
     "JUPITER_SWAP_API_BASE_URL": "https://lite-api.jup.ag/swap/v1",
     "ENTRY_FEE_BPS": "25",

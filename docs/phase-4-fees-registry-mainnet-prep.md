@@ -137,11 +137,11 @@ If an on-chain registry transaction succeeds but DB persistence fails afterward,
 
 ## NAV Cron
 
-Worker cron is configured for every 15 minutes:
+Worker cron is configured for the start of every hour:
 
 ```json
 "triggers": {
-  "crons": ["*/15 * * * *"]
+  "crons": ["0 * * * *"]
 }
 ```
 
@@ -150,7 +150,7 @@ The cron:
 - lists ACTIVE strategies
 - reuses the existing NAV refresh path
 - isolates per-strategy failures
-- skips duplicate 15-minute buckets via `interval_start`
+- skips duplicate hourly buckets via `interval_start`
 - leaves manual NAV refresh available
 
 ## Mainnet Preflight Status
