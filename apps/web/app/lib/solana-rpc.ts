@@ -1,5 +1,6 @@
 import { appConfig } from "../config";
 import { formatAtomic } from "./format";
+import { jsonRpcRequest } from "./json-rpc";
 
 export type TokenBalance = {
   mint: string;
@@ -30,46 +31,13 @@ type ParsedTokenAccount = {
   };
 };
 
-type JsonRpcResponse<T> = {
-  result?: T;
-  error?: { message: string };
-};
-
 export async function rpcRequest<T>(method: string, params: unknown[]) {
-  const response = await fetch(appConfig.solanaRpcProxyUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method,
-      params,
-    }),
+  return jsonRpcRequest<T>({
+    url: appConfig.solanaRpcProxyUrl,
+    label: "RPC",
+    method,
+    params,
   });
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (!contentType.includes("application/json")) {
-    const body = await response.text();
-    throw new Error(
-      `RPC ${method} expected JSON from ${appConfig.solanaRpcProxyUrl}, got ${response.status} ${
-        response.statusText || "response"
-      } (${contentType || "no content-type"}). Preview: ${body.slice(0, 120)}`,
-    );
-  }
-
-  const payload = (await response.json()) as JsonRpcResponse<T>;
-
-  if (!response.ok || payload.error) {
-    throw new Error(
-      `RPC ${method} failed: ${payload.error?.message ?? response.statusText}`,
-    );
-  }
-
-  if (payload.result === undefined) {
-    throw new Error(`RPC ${method} returned no result.`);
-  }
-
-  return payload.result;
 }
 
 export async function fetchSolBalanceLamports(owner: string) {

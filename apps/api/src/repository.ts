@@ -1,4 +1,4 @@
-import { and, asc, countDistinct, desc, eq, lte, sql, sum } from "drizzle-orm";
+import { and, asc, countDistinct, desc, eq, sum } from "drizzle-orm";
 import {
   feeEvents,
   investmentPositions,

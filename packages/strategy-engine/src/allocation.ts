@@ -1,4 +1,8 @@
-import { getSupportedAssetByMint, USDC_MINT, type TokenizedEquityAsset } from "@stratin/shared";
+import {
+  getSupportedAssetByMint,
+  USDC_MINT,
+  type TokenizedEquityAsset,
+} from "@stratin/shared";
 
 export const TOTAL_WEIGHT_BPS = 10_000;
 
@@ -32,21 +36,26 @@ export type AllocationResult = Readonly<{
 
 function findSupportedAsset(
   mint: string,
-  supportedAssets?: readonly TokenizedEquityAsset[]
+  supportedAssets?: readonly TokenizedEquityAsset[],
 ): TokenizedEquityAsset | undefined {
-  return supportedAssets?.find((asset) => asset.mint === mint) ?? getSupportedAssetByMint(mint);
+  return (
+    supportedAssets?.find((asset) => asset.mint === mint) ??
+    getSupportedAssetByMint(mint)
+  );
 }
 
 function assertIntegerWeight(weightBps: number, mint: string) {
   if (!Number.isInteger(weightBps) || weightBps <= 0) {
-    throw new Error(`Allocation for ${mint} must be a positive integer bps value.`);
+    throw new Error(
+      `Allocation for ${mint} must be a positive integer bps value.`,
+    );
   }
 }
 
 export function calculateAllocation({
   investmentAmountAtomic,
   allocations,
-  supportedAssets
+  supportedAssets,
 }: CalculateAllocationInput): AllocationResult {
   if (investmentAmountAtomic <= 0n) {
     throw new Error("Investment amount must be greater than zero.");
@@ -79,7 +88,9 @@ export function calculateAllocation({
   }
 
   let allocatedAmountAtomic = 0n;
-  const sortedAllocations = [...allocations].sort((a, b) => b.weightBps - a.weightBps);
+  const sortedAllocations = [...allocations].sort(
+    (a, b) => b.weightBps - a.weightBps,
+  );
   const legs = sortedAllocations.map((allocation, index) => {
     const asset = findSupportedAsset(allocation.mint, supportedAssets);
 
@@ -90,7 +101,8 @@ export function calculateAllocation({
     const isLastLeg = index === sortedAllocations.length - 1;
     const targetAmountAtomic = isLastLeg
       ? investmentAmountAtomic - allocatedAmountAtomic
-      : (investmentAmountAtomic * BigInt(allocation.weightBps)) / BigInt(TOTAL_WEIGHT_BPS);
+      : (investmentAmountAtomic * BigInt(allocation.weightBps)) /
+        BigInt(TOTAL_WEIGHT_BPS);
 
     allocatedAmountAtomic += targetAmountAtomic;
 
@@ -100,7 +112,7 @@ export function calculateAllocation({
       weightBps: allocation.weightBps,
       targetAmountAtomic,
       targetAmountUsdAtomic: targetAmountAtomic,
-      requiresSwap: allocation.mint !== USDC_MINT
+      requiresSwap: allocation.mint !== USDC_MINT,
     };
   });
 
@@ -113,6 +125,6 @@ export function calculateAllocation({
     investmentAmountAtomic,
     swapAmountAtomic: investmentAmountAtomic - retainedUsdcAmountAtomic,
     retainedUsdcAmountAtomic,
-    legs
+    legs,
   };
 }

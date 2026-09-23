@@ -10,10 +10,13 @@ describe("performance", () => {
     const now = new Date("2026-09-21T00:00:00Z");
     const result = calculatePerformance(
       [
-        { timestamp: new Date("2026-09-20T00:00:00Z"), navUsdcAtomic: 100_000_000n },
-        { timestamp: now, navUsdcAtomic: 101_000_000n }
+        {
+          timestamp: new Date("2026-09-20T00:00:00Z"),
+          navUsdcAtomic: 100_000_000n,
+        },
+        { timestamp: now, navUsdcAtomic: 101_000_000n },
       ],
-      now
+      now,
     );
 
     expect(result.oneWeek).toBeNull();
@@ -26,11 +29,17 @@ describe("performance", () => {
     const now = new Date("2026-09-21T00:00:00Z");
     const result = calculatePerformance(
       [
-        { timestamp: new Date("2026-09-01T00:00:00Z"), navUsdcAtomic: 100_000_000n },
-        { timestamp: new Date("2026-09-13T00:00:00Z"), navUsdcAtomic: 102_000_000n },
-        { timestamp: now, navUsdcAtomic: 104_040_000n }
+        {
+          timestamp: new Date("2026-09-01T00:00:00Z"),
+          navUsdcAtomic: 100_000_000n,
+        },
+        {
+          timestamp: new Date("2026-09-13T00:00:00Z"),
+          navUsdcAtomic: 102_000_000n,
+        },
+        { timestamp: now, navUsdcAtomic: 104_040_000n },
       ],
-      now
+      now,
     );
 
     expect(result.oneWeek).toBe(200n);

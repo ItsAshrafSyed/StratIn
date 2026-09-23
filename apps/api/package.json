@@ -6,7 +6,7 @@
     "dev": "wrangler dev --port 8788",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
     "test": "vitest run"
   },
   "dependencies": {

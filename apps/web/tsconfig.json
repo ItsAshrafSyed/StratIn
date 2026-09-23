@@ -7,25 +7,12 @@
       }
     ],
     "paths": {
-      "@stratin/execution": [
-        "../../packages/execution/src"
-      ],
-      "@stratin/strategy-engine": [
-        "../../packages/strategy-engine/src"
-      ],
-      "@stratin/shared": [
-        "../../packages/shared/src"
-      ]
+      "@stratin/execution": ["../../packages/execution/src"],
+      "@stratin/strategy-engine": ["../../packages/strategy-engine/src"],
+      "@stratin/shared": ["../../packages/shared/src"]
     },
     "incremental": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

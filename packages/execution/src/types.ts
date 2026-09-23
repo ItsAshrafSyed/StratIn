@@ -31,9 +31,12 @@ export type BuiltExecutionTransaction = Readonly<{
 export type ExecutionProvider = Readonly<{
   id: string;
   getQuote(request: QuoteRequest): Promise<ExecutionQuote>;
-  buildTransaction(request: BuildTransactionRequest): Promise<BuiltExecutionTransaction>;
+  buildTransaction(
+    request: BuildTransactionRequest,
+  ): Promise<BuiltExecutionTransaction>;
 }>;
 
-export type ExecutableAllocationLeg = AllocationLeg & Readonly<{
-  quote?: ExecutionQuote;
-}>;
+export type ExecutableAllocationLeg = AllocationLeg &
+  Readonly<{
+    quote?: ExecutionQuote;
+  }>;

@@ -11,11 +11,8 @@ import {
   useWallets,
 } from "@solana/kit-plugin-wallet/react";
 import { SUPPORTED_TOKENIZED_EQUITIES } from "@stratin/shared";
+import { shortenAddress } from "./lib/format";
 import { solanaClient } from "./providers";
-
-function shortenAddress(address: string) {
-  return `${address.slice(0, 4)}...${address.slice(-4)}`;
-}
 
 export default function Home() {
   const [hasMounted, setHasMounted] = useState(false);

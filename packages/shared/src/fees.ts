@@ -1,7 +1,8 @@
 export const DEFAULT_ENTRY_FEE_BPS = 25;
 export const DEFAULT_REBALANCE_FEE_BPS = 10;
 export const DEFAULT_PROTOCOL_FEE_SHARE_BPS = 2_000;
-export const DEFAULT_PROTOCOL_TREASURY = "stiFExnwsWbHxrB5CqCSBWMbLjgB8hVLURtUsyAr3RT";
+export const DEFAULT_PROTOCOL_TREASURY =
+  "stiFExnwsWbHxrB5CqCSBWMbLjgB8hVLURtUsyAr3RT";
 
 export type FeeEventType = "INVEST" | "REBALANCE";
 
@@ -27,32 +28,51 @@ export function parseFeeConfig(input: {
   PROTOCOL_TREASURY?: string;
 }): FeeConfig {
   return {
-    entryFeeBps: parseBps(input.ENTRY_FEE_BPS, DEFAULT_ENTRY_FEE_BPS, "ENTRY_FEE_BPS"),
-    rebalanceFeeBps: parseBps(input.REBALANCE_FEE_BPS, DEFAULT_REBALANCE_FEE_BPS, "REBALANCE_FEE_BPS"),
+    entryFeeBps: parseBps(
+      input.ENTRY_FEE_BPS,
+      DEFAULT_ENTRY_FEE_BPS,
+      "ENTRY_FEE_BPS",
+    ),
+    rebalanceFeeBps: parseBps(
+      input.REBALANCE_FEE_BPS,
+      DEFAULT_REBALANCE_FEE_BPS,
+      "REBALANCE_FEE_BPS",
+    ),
     protocolFeeShareBps: parseBps(
       input.PROTOCOL_FEE_SHARE_BPS,
       DEFAULT_PROTOCOL_FEE_SHARE_BPS,
-      "PROTOCOL_FEE_SHARE_BPS"
+      "PROTOCOL_FEE_SHARE_BPS",
     ),
-    protocolTreasury: input.PROTOCOL_TREASURY?.trim() || DEFAULT_PROTOCOL_TREASURY
+    protocolTreasury:
+      input.PROTOCOL_TREASURY?.trim() || DEFAULT_PROTOCOL_TREASURY,
   };
 }
 
 export function calculateFeeBreakdown(
   eventType: FeeEventType,
   actionAmountAtomic: bigint,
-  config: Pick<FeeConfig, "entryFeeBps" | "rebalanceFeeBps" | "protocolFeeShareBps">
+  config: Pick<
+    FeeConfig,
+    "entryFeeBps" | "rebalanceFeeBps" | "protocolFeeShareBps"
+  >,
 ): FeeBreakdown {
   if (actionAmountAtomic < 0n) {
     throw new Error("Fee action amount cannot be negative.");
   }
 
-  const feeBps = eventType === "INVEST" ? config.entryFeeBps : config.rebalanceFeeBps;
+  const feeBps =
+    eventType === "INVEST" ? config.entryFeeBps : config.rebalanceFeeBps;
   assertValidBps(feeBps, `${eventType} fee bps`);
   assertValidBps(config.protocolFeeShareBps, "Protocol fee share bps");
 
-  const totalFeeAtomic = divideRoundUp(actionAmountAtomic * BigInt(feeBps), 10_000n);
-  const protocolFeeAtomic = divideRoundDown(totalFeeAtomic * BigInt(config.protocolFeeShareBps), 10_000n);
+  const totalFeeAtomic = divideRoundUp(
+    actionAmountAtomic * BigInt(feeBps),
+    10_000n,
+  );
+  const protocolFeeAtomic = divideRoundDown(
+    totalFeeAtomic * BigInt(config.protocolFeeShareBps),
+    10_000n,
+  );
   const strategistFeeAtomic = totalFeeAtomic - protocolFeeAtomic;
 
   return {
@@ -60,12 +80,12 @@ export function calculateFeeBreakdown(
     actionAmountAtomic,
     totalFeeAtomic,
     strategistFeeAtomic,
-    protocolFeeAtomic
+    protocolFeeAtomic,
   };
 }
 
 export function calculateRebalanceFeeBasis(
-  trades: readonly { side: "BUY" | "SELL"; valueUsdcAtomic: bigint }[]
+  trades: readonly { side: "BUY" | "SELL"; valueUsdcAtomic: bigint }[],
 ) {
   const sellNotional = trades
     .filter((trade) => trade.side === "SELL")
@@ -77,7 +97,11 @@ export function calculateRebalanceFeeBasis(
   return sellNotional > buyNotional ? sellNotional : buyNotional;
 }
 
-function parseBps(value: string | number | undefined, fallback: number, label: string) {
+function parseBps(
+  value: string | number | undefined,
+  fallback: number,
+  label: string,
+) {
   const parsed = value === undefined || value === "" ? fallback : Number(value);
 
   if (!Number.isInteger(parsed)) {

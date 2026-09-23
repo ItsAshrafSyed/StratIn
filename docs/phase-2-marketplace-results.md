@@ -90,12 +90,12 @@ Wallet A created and published a DB-backed strategy. Wallet B opened the strateg
 
 Confirmed transaction signatures:
 
-| Leg | Status | Signature |
-| --- | --- | --- |
+| Leg    | Status    | Signature                                                                                  |
+| ------ | --------- | ------------------------------------------------------------------------------------------ |
 | GOOGLx | Confirmed | `5Eq94MqRSMkrfJHYhfyvpqKTown743b4bMNoiVqXroB4ce5qRsj5reBq3rYwFq4T7DsegTzgqL1nEKfEaKHYgf3u` |
-| TSLAx | Confirmed | `3CajMDhcR8peKy7JkwwSCtP6AG5wxFN5GXE9aY193LHzHge6RYGGybdNJ3Q5hxsm2WTQky94qxfwF9uVNevDRBYy` |
-| AAPLx | Confirmed | `35HStnpoN1dBTWxYBvfFKKVWSoRDW1sSwJyy2ydLNJMfzgTRoYi4duEvVdDdRT6xP9givmifNHE22yTnvcZRhDwQ` |
-| METAx | Confirmed | `5aBS9rDgJ4p1hja5amSJVemqreFE43HLYL5Ra6XKTXaa75tPebVoZHCZktCzwzM1FySF6jwKFNZNx4EiaJwFTkoX` |
+| TSLAx  | Confirmed | `3CajMDhcR8peKy7JkwwSCtP6AG5wxFN5GXE9aY193LHzHge6RYGGybdNJ3Q5hxsm2WTQky94qxfwF9uVNevDRBYy` |
+| AAPLx  | Confirmed | `35HStnpoN1dBTWxYBvfFKKVWSoRDW1sSwJyy2ydLNJMfzgTRoYi4duEvVdDdRT6xP9givmifNHE22yTnvcZRhDwQ` |
+| METAx  | Confirmed | `5aBS9rDgJ4p1hja5amSJVemqreFE43HLYL5Ra6XKTXaa75tPebVoZHCZktCzwzM1FySF6jwKFNZNx4EiaJwFTkoX` |
 
 Follow-up dashboard checks:
 

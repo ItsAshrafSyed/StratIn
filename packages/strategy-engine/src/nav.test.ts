@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { USDC_MINT } from "@stratin/shared";
-import { calculateNav, initializeModelPositions, rebalanceModelPositions, type PriceProvider } from "./nav";
+import {
+  calculateNav,
+  initializeModelPositions,
+  rebalanceModelPositions,
+  type PriceProvider,
+} from "./nav";
 
 const ASSET_A = "AssetA111111111111111111111111111111111111";
 const ASSET_B = "AssetB111111111111111111111111111111111111";
@@ -8,7 +13,7 @@ const ASSET_B = "AssetB111111111111111111111111111111111111";
 class FixedPriceProvider implements PriceProvider {
   prices = new Map<string, bigint>([
     [ASSET_A, 2_000_000n],
-    [ASSET_B, 5_000_000n]
+    [ASSET_B, 5_000_000n],
   ]);
 
   async getUsdValue(assetMint: string, quantityAtomic: bigint) {
@@ -34,9 +39,9 @@ describe("canonical NAV", () => {
     const positions = await initializeModelPositions(
       [
         { assetMint: ASSET_A, weightBps: 5000 },
-        { assetMint: USDC_MINT, weightBps: 5000 }
+        { assetMint: USDC_MINT, weightBps: 5000 },
       ],
-      provider
+      provider,
     );
     const nav = await calculateNav({ positions, priceProvider: provider });
 
@@ -48,12 +53,15 @@ describe("canonical NAV", () => {
     const positions = await initializeModelPositions(
       [
         { assetMint: ASSET_A, weightBps: 5000 },
-        { assetMint: USDC_MINT, weightBps: 5000 }
+        { assetMint: USDC_MINT, weightBps: 5000 },
       ],
-      provider
+      provider,
     );
     const before = await calculateNav({ positions, priceProvider: provider });
-    const afterInvestorDeposit = await calculateNav({ positions, priceProvider: provider });
+    const afterInvestorDeposit = await calculateNav({
+      positions,
+      priceProvider: provider,
+    });
 
     expect(afterInvestorDeposit.navUsdcAtomic).toBe(before.navUsdcAtomic);
   });
@@ -63,15 +71,18 @@ describe("canonical NAV", () => {
     const positions = await initializeModelPositions(
       [
         { assetMint: ASSET_A, weightBps: 5000 },
-        { assetMint: USDC_MINT, weightBps: 5000 }
+        { assetMint: USDC_MINT, weightBps: 5000 },
       ],
-      provider
+      provider,
     );
     provider.prices.set(ASSET_A, 3_000_000n);
     const nav = await calculateNav({ positions, priceProvider: provider });
 
     expect(nav.navUsdcAtomic).toBe(125_000_000n);
-    expect(nav.valuedPositions.find((position) => position.assetMint === ASSET_A)?.valueUsdcAtomic).toBe(75_000_000n);
+    expect(
+      nav.valuedPositions.find((position) => position.assetMint === ASSET_A)
+        ?.valueUsdcAtomic,
+    ).toBe(75_000_000n);
   });
 
   it("missing price fails safely", async () => {
@@ -79,8 +90,8 @@ describe("canonical NAV", () => {
     await expect(
       calculateNav({
         positions: [{ assetMint: "MissingMint", quantityAtomic: 1n }],
-        priceProvider: provider
-      })
+        priceProvider: provider,
+      }),
     ).rejects.toThrow("Missing price");
   });
 
@@ -89,9 +100,9 @@ describe("canonical NAV", () => {
     const positions = await initializeModelPositions(
       [
         { assetMint: ASSET_A, weightBps: 5000 },
-        { assetMint: USDC_MINT, weightBps: 5000 }
+        { assetMint: USDC_MINT, weightBps: 5000 },
       ],
-      provider
+      provider,
     );
     provider.prices.set(ASSET_A, 3_000_000n);
 
@@ -100,9 +111,9 @@ describe("canonical NAV", () => {
       newAllocations: [
         { assetMint: ASSET_A, weightBps: 3000 },
         { assetMint: ASSET_B, weightBps: 3000 },
-        { assetMint: USDC_MINT, weightBps: 4000 }
+        { assetMint: USDC_MINT, weightBps: 4000 },
       ],
-      priceProvider: provider
+      priceProvider: provider,
     });
 
     expect(rebalanced.beforeNavUsdcAtomic).toBe(125_000_000n);

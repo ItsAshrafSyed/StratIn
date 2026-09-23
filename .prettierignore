@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.anchor
+target
+packages/db/drizzle
+pnpm-lock.yaml
+Anchor.lock
+Cargo.lock

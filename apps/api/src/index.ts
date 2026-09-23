@@ -8,6 +8,8 @@ import {
   recordInvestmentSchema,
   recordRebalanceSchema,
   STRATEGY_SELECTABLE_ASSETS,
+  type StrategyDetail,
+  type StrategyVersionDto,
 } from "@stratin/shared";
 import { getDb, type Env } from "./db";
 import { navIntervalStart, processNavCron } from "./nav-cron";
@@ -32,8 +34,6 @@ import {
   type RegistryNetwork,
 } from "./registry-verification";
 import { getRegistryRpcUrl } from "./registry-rpc";
-import type { StrategyDetail, StrategyVersionDto } from "@stratin/shared";
-
 const app = new Hono<{ Bindings: Env }>();
 
 function getPriceProvider(env: Env) {

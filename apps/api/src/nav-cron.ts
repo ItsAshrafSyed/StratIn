@@ -5,7 +5,7 @@ export function navIntervalStart(date: Date) {
 
 export async function processNavCron(
   strategyIds: readonly string[],
-  refresh: (strategyId: string) => Promise<void>
+  refresh: (strategyId: string) => Promise<void>,
 ): Promise<{ strategyId: string; ok: boolean; error?: string }[]> {
   const results: { strategyId: string; ok: boolean; error?: string }[] = [];
 
@@ -14,8 +14,15 @@ export async function processNavCron(
       await refresh(strategyId);
       results.push({ strategyId, ok: true });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown NAV refresh error.";
-      console.error(JSON.stringify({ event: "nav_cron_strategy_failed", strategyId, message }));
+      const message =
+        error instanceof Error ? error.message : "Unknown NAV refresh error.";
+      console.error(
+        JSON.stringify({
+          event: "nav_cron_strategy_failed",
+          strategyId,
+          message,
+        }),
+      );
       results.push({ strategyId, ok: false, error: message });
     }
   }

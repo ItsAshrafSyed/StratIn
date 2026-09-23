@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { SUPPORTED_TOKENIZED_EQUITIES, USDC_MINT, validateStrategyAllocations } from "@stratin/shared";
+import {
+  SUPPORTED_TOKENIZED_EQUITIES,
+  USDC_MINT,
+  validateStrategyAllocations,
+} from "@stratin/shared";
 
 const [nvda, aapl, meta] = SUPPORTED_TOKENIZED_EQUITIES;
 
@@ -8,7 +12,10 @@ type Strategy = {
   creatorWallet: string;
   currentVersion: number;
   allocations: { assetMint: string; weightBps: number }[];
-  versions: { version: number; allocations: { assetMint: string; weightBps: number }[] }[];
+  versions: {
+    version: number;
+    allocations: { assetMint: string; weightBps: number }[];
+  }[];
 };
 
 type Investment = {
@@ -40,13 +47,17 @@ class MemoryMarketplace {
       ...input,
       id: crypto.randomUUID(),
       currentVersion: 1,
-      versions: [{ version: 1, allocations: input.allocations }]
+      versions: [{ version: 1, allocations: input.allocations }],
     };
     this.strategies.push(strategy);
     return strategy;
   }
 
-  publishRebalance(strategyId: string, creatorWallet: string, allocations: { assetMint: string; weightBps: number }[]) {
+  publishRebalance(
+    strategyId: string,
+    creatorWallet: string,
+    allocations: { assetMint: string; weightBps: number }[],
+  ) {
     validateStrategyAllocations(allocations);
     const strategy = this.strategies.find((item) => item.id === strategyId);
 
@@ -65,10 +76,14 @@ class MemoryMarketplace {
 
   recordInvestment(input: Omit<Investment, "id" | "strategyVersion">) {
     if (input.transactionSignatures.length === 0) {
-      throw new Error("Cannot record investment without confirmed transaction signatures.");
+      throw new Error(
+        "Cannot record investment without confirmed transaction signatures.",
+      );
     }
 
-    const strategy = this.strategies.find((item) => item.id === input.strategyId);
+    const strategy = this.strategies.find(
+      (item) => item.id === input.strategyId,
+    );
 
     if (!strategy) {
       throw new Error("Strategy not found.");
@@ -77,7 +92,7 @@ class MemoryMarketplace {
     const investment = {
       ...input,
       id: crypto.randomUUID(),
-      strategyVersion: strategy.currentVersion
+      strategyVersion: strategy.currentVersion,
     };
     this.investments.push(investment);
     return investment;
@@ -85,10 +100,14 @@ class MemoryMarketplace {
 
   recordFeeEvent(input: FeeEvent) {
     if (input.transactionSignatures.length === 0) {
-      throw new Error("Cannot record fee event without confirmed transaction signatures.");
+      throw new Error(
+        "Cannot record fee event without confirmed transaction signatures.",
+      );
     }
 
-    const investment = this.investments.find((item) => item.id === input.investmentId);
+    const investment = this.investments.find(
+      (item) => item.id === input.investmentId,
+    );
 
     if (!investment) {
       throw new Error("Investment not found.");
@@ -97,12 +116,21 @@ class MemoryMarketplace {
     this.feeEvents.push(input);
   }
 
-  recordRebalance(investmentId: string, investorWallet: string, positions: Investment["positions"], signatures: string[]) {
+  recordRebalance(
+    investmentId: string,
+    investorWallet: string,
+    positions: Investment["positions"],
+    signatures: string[],
+  ) {
     if (signatures.length === 0) {
-      throw new Error("Cannot record rebalance without confirmed transaction signatures.");
+      throw new Error(
+        "Cannot record rebalance without confirmed transaction signatures.",
+      );
     }
 
-    const investment = this.investments.find((item) => item.id === investmentId);
+    const investment = this.investments.find(
+      (item) => item.id === investmentId,
+    );
 
     if (!investment) {
       throw new Error("Investment not found.");
@@ -112,7 +140,9 @@ class MemoryMarketplace {
       throw new Error("Only the investing wallet can record this rebalance.");
     }
 
-    const strategy = this.strategies.find((item) => item.id === investment.strategyId);
+    const strategy = this.strategies.find(
+      (item) => item.id === investment.strategyId,
+    );
 
     if (!strategy) {
       throw new Error("Strategy not found.");
@@ -120,7 +150,10 @@ class MemoryMarketplace {
 
     investment.strategyVersion = strategy.currentVersion;
     investment.positions = positions;
-    investment.transactionSignatures = [...investment.transactionSignatures, ...signatures];
+    investment.transactionSignatures = [
+      ...investment.transactionSignatures,
+      ...signatures,
+    ];
     return investment;
   }
 
@@ -128,14 +161,17 @@ class MemoryMarketplace {
     return new Set(
       this.investments
         .filter((investment) => investment.strategyId === strategyId)
-        .map((investment) => investment.investorWallet)
+        .map((investment) => investment.investorWallet),
     ).size;
   }
 
   capitalFollowing(strategyId: string) {
     return this.investments
       .filter((investment) => investment.strategyId === strategyId)
-      .reduce((sum, investment) => sum + BigInt(investment.initialAmountUsdcAtomic), 0n);
+      .reduce(
+        (sum, investment) => sum + BigInt(investment.initialAmountUsdcAtomic),
+        0n,
+      );
   }
 
   strategistEarnings(strategyId: string) {
@@ -147,7 +183,9 @@ class MemoryMarketplace {
 
     return this.feeEvents
       .filter((fee) => {
-        const investment = this.investments.find((item) => item.id === fee.investmentId);
+        const investment = this.investments.find(
+          (item) => item.id === fee.investmentId,
+        );
         return investment?.strategyId === strategyId;
       })
       .reduce((sum, fee) => sum + BigInt(fee.strategistFeeAtomic), 0n);
@@ -167,9 +205,9 @@ describe("marketplace business behavior", () => {
         creatorWallet: "wallet-a",
         allocations: [
           { assetMint: nvda.mint, weightBps: 5000 },
-          { assetMint: USDC_MINT, weightBps: 4000 }
-        ]
-      })
+          { assetMint: USDC_MINT, weightBps: 4000 },
+        ],
+      }),
     ).toThrow("Allocation weights must total 10000 bps.");
   });
 
@@ -180,9 +218,9 @@ describe("marketplace business behavior", () => {
         allocations: [
           { assetMint: nvda.mint, weightBps: 5000 },
           { assetMint: nvda.mint, weightBps: 4000 },
-          { assetMint: USDC_MINT, weightBps: 1000 }
-        ]
-      })
+          { assetMint: USDC_MINT, weightBps: 1000 },
+        ],
+      }),
     ).toThrow("Duplicate asset allocation");
   });
 
@@ -191,10 +229,13 @@ describe("marketplace business behavior", () => {
       store.createStrategy({
         creatorWallet: "wallet-a",
         allocations: [
-          { assetMint: "UnsupportedMint111111111111111111111111111111", weightBps: 9000 },
-          { assetMint: USDC_MINT, weightBps: 1000 }
-        ]
-      })
+          {
+            assetMint: "UnsupportedMint111111111111111111111111111111",
+            weightBps: 9000,
+          },
+          { assetMint: USDC_MINT, weightBps: 1000 },
+        ],
+      }),
     ).toThrow("Unsupported asset allocation");
   });
 
@@ -205,13 +246,16 @@ describe("marketplace business behavior", () => {
         { assetMint: nvda.mint, weightBps: 3500 },
         { assetMint: aapl.mint, weightBps: 2500 },
         { assetMint: meta.mint, weightBps: 2000 },
-        { assetMint: USDC_MINT, weightBps: 2000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 2000 },
+      ],
     });
 
     expect(strategy.currentVersion).toBe(1);
     expect(strategy.allocations).toHaveLength(4);
-    expect(strategy.allocations[0]).toEqual({ assetMint: nvda.mint, weightBps: 3500 });
+    expect(strategy.allocations[0]).toEqual({
+      assetMint: nvda.mint,
+      weightBps: 3500,
+    });
     expect(strategy.versions[0].allocations).toEqual(strategy.allocations);
   });
 
@@ -220,8 +264,8 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
 
     expect(() =>
@@ -230,9 +274,11 @@ describe("marketplace business behavior", () => {
         investorWallet: "wallet-b",
         initialAmountUsdcAtomic: "10000000",
         transactionSignatures: [],
-        positions: [{ assetMint: USDC_MINT, quantityAtomic: "1000000" }]
-      })
-    ).toThrow("Cannot record investment without confirmed transaction signatures.");
+        positions: [{ assetMint: USDC_MINT, quantityAtomic: "1000000" }],
+      }),
+    ).toThrow(
+      "Cannot record investment without confirmed transaction signatures.",
+    );
     expect(store.investments).toHaveLength(0);
   });
 
@@ -241,15 +287,15 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
     const investment = store.recordInvestment({
       strategyId: strategy.id,
       investorWallet: "wallet-b",
       initialAmountUsdcAtomic: "10000000",
       transactionSignatures: ["sig-a"],
-      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }]
+      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }],
     });
 
     expect(investment.strategyVersion).toBe(1);
@@ -260,15 +306,15 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
     const investment = store.recordInvestment({
       strategyId: strategy.id,
       investorWallet: "wallet-b",
       initialAmountUsdcAtomic: "10000000",
       transactionSignatures: ["sig-a"],
-      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }]
+      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }],
     });
 
     expect(() =>
@@ -277,8 +323,8 @@ describe("marketplace business behavior", () => {
         investmentId: investment.id,
         strategistFeeAtomic: "20000",
         protocolFeeAtomic: "5000",
-        transactionSignatures: []
-      })
+        transactionSignatures: [],
+      }),
     ).toThrow("Cannot record fee event");
     expect(store.feeEvents).toHaveLength(0);
   });
@@ -288,8 +334,8 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
 
     store.recordInvestment({
@@ -297,14 +343,14 @@ describe("marketplace business behavior", () => {
       investorWallet: "wallet-b",
       initialAmountUsdcAtomic: "10000000",
       transactionSignatures: ["sig-a"],
-      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }]
+      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }],
     });
     store.recordInvestment({
       strategyId: strategy.id,
       investorWallet: "wallet-c",
       initialAmountUsdcAtomic: "40000000",
       transactionSignatures: ["sig-b"],
-      positions: [{ assetMint: nvda.mint, quantityAtomic: "4000" }]
+      positions: [{ assetMint: nvda.mint, quantityAtomic: "4000" }],
     });
 
     expect(store.investorCount(strategy.id)).toBe(2);
@@ -316,15 +362,15 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
     const investment = store.recordInvestment({
       strategyId: strategy.id,
       investorWallet: "wallet-b",
       initialAmountUsdcAtomic: "10000000",
       transactionSignatures: ["sig-a"],
-      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }]
+      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }],
     });
 
     store.recordFeeEvent({
@@ -332,7 +378,7 @@ describe("marketplace business behavior", () => {
       investmentId: investment.id,
       strategistFeeAtomic: "20000",
       protocolFeeAtomic: "5000",
-      transactionSignatures: ["fee-sig"]
+      transactionSignatures: ["fee-sig"],
     });
 
     expect(store.strategistEarnings(strategy.id)).toBe(20_000n);
@@ -343,15 +389,15 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
     const versionOne = strategy.versions[0].allocations;
 
     store.publishRebalance(strategy.id, "wallet-a", [
       { assetMint: nvda.mint, weightBps: 5000 },
       { assetMint: aapl.mint, weightBps: 4000 },
-      { assetMint: USDC_MINT, weightBps: 1000 }
+      { assetMint: USDC_MINT, weightBps: 1000 },
     ]);
 
     expect(strategy.currentVersion).toBe(2);
@@ -359,7 +405,7 @@ describe("marketplace business behavior", () => {
     expect(strategy.versions[1].allocations).toEqual([
       { assetMint: nvda.mint, weightBps: 5000 },
       { assetMint: aapl.mint, weightBps: 4000 },
-      { assetMint: USDC_MINT, weightBps: 1000 }
+      { assetMint: USDC_MINT, weightBps: 1000 },
     ]);
   });
 
@@ -368,15 +414,15 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
 
     expect(() =>
       store.publishRebalance(strategy.id, "wallet-b", [
         { assetMint: nvda.mint, weightBps: 5000 },
-        { assetMint: USDC_MINT, weightBps: 5000 }
-      ])
+        { assetMint: USDC_MINT, weightBps: 5000 },
+      ]),
     ).toThrow("Only the strategy creator");
   });
 
@@ -385,27 +431,32 @@ describe("marketplace business behavior", () => {
       creatorWallet: "wallet-a",
       allocations: [
         { assetMint: nvda.mint, weightBps: 9000 },
-        { assetMint: USDC_MINT, weightBps: 1000 }
-      ]
+        { assetMint: USDC_MINT, weightBps: 1000 },
+      ],
     });
     const investment = store.recordInvestment({
       strategyId: strategy.id,
       investorWallet: "wallet-b",
       initialAmountUsdcAtomic: "10000000",
       transactionSignatures: ["sig-a"],
-      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }]
+      positions: [{ assetMint: nvda.mint, quantityAtomic: "1000" }],
     });
 
     store.publishRebalance(strategy.id, "wallet-a", [
       { assetMint: nvda.mint, weightBps: 5000 },
       { assetMint: aapl.mint, weightBps: 4000 },
-      { assetMint: USDC_MINT, weightBps: 1000 }
+      { assetMint: USDC_MINT, weightBps: 1000 },
     ]);
 
     expect(investment.strategyVersion < strategy.currentVersion).toBe(true);
-    expect(() => store.recordRebalance(investment.id, "wallet-b", investment.positions, [])).toThrow(
-      "Cannot record rebalance"
-    );
+    expect(() =>
+      store.recordRebalance(
+        investment.id,
+        "wallet-b",
+        investment.positions,
+        [],
+      ),
+    ).toThrow("Cannot record rebalance");
     expect(investment.strategyVersion).toBe(1);
 
     store.recordRebalance(
@@ -414,9 +465,9 @@ describe("marketplace business behavior", () => {
       [
         { assetMint: nvda.mint, quantityAtomic: "500" },
         { assetMint: aapl.mint, quantityAtomic: "400" },
-        { assetMint: USDC_MINT, quantityAtomic: "1000000" }
+        { assetMint: USDC_MINT, quantityAtomic: "1000000" },
       ],
-      ["sig-rebalance"]
+      ["sig-rebalance"],
     );
 
     expect(investment.strategyVersion).toBe(2);

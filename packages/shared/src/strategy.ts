@@ -4,11 +4,16 @@ import type { FeeEventType } from "./fees";
 
 export const STRATEGY_STATUS = ["ACTIVE", "CLOSED"] as const;
 export const INVESTOR_EVENT_TYPES = ["INVEST", "REBALANCE"] as const;
-export const VERIFICATION_STATUS = ["UNVERIFIED", "PENDING", "VERIFIED", "FAILED"] as const;
+export const VERIFICATION_STATUS = [
+  "UNVERIFIED",
+  "PENDING",
+  "VERIFIED",
+  "FAILED",
+] as const;
 
 export const strategyAllocationSchema = z.object({
   assetMint: z.string().min(1),
-  weightBps: z.number().int().positive().max(10_000)
+  weightBps: z.number().int().positive().max(10_000),
 });
 
 export const createStrategySchema = z.object({
@@ -22,9 +27,9 @@ export const createStrategySchema = z.object({
       allocationHash: z.string().regex(/^[0-9a-f]{64}$/),
       transactionSignature: z.string().min(32),
       strategyPda: z.string().min(32),
-      versionPda: z.string().min(32)
+      versionPda: z.string().min(32),
     })
-    .optional()
+    .optional(),
 });
 
 export const recordInvestmentSchema = z.object({
@@ -35,7 +40,7 @@ export const recordInvestmentSchema = z.object({
       actionAmountAtomic: z.string().regex(/^\d+$/),
       strategistFeeAtomic: z.string().regex(/^\d+$/),
       protocolFeeAtomic: z.string().regex(/^\d+$/),
-      transactionSignatures: z.array(z.string().min(32)).min(1)
+      transactionSignatures: z.array(z.string().min(32)).min(1),
     })
     .optional(),
   transactionSignatures: z.array(z.string().min(32)).min(1),
@@ -43,10 +48,10 @@ export const recordInvestmentSchema = z.object({
     .array(
       z.object({
         assetMint: z.string().min(1),
-        quantityAtomic: z.string().regex(/^\d+$/)
-      })
+        quantityAtomic: z.string().regex(/^\d+$/),
+      }),
     )
-    .min(1)
+    .min(1),
 });
 
 export const publishRebalanceSchema = z.object({
@@ -57,9 +62,9 @@ export const publishRebalanceSchema = z.object({
       allocationHash: z.string().regex(/^[0-9a-f]{64}$/),
       transactionSignature: z.string().min(32),
       strategyPda: z.string().min(32),
-      versionPda: z.string().min(32)
+      versionPda: z.string().min(32),
     })
-    .optional()
+    .optional(),
 });
 
 export const recordRebalanceSchema = z.object({
@@ -69,7 +74,7 @@ export const recordRebalanceSchema = z.object({
       actionAmountAtomic: z.string().regex(/^\d+$/),
       strategistFeeAtomic: z.string().regex(/^\d+$/),
       protocolFeeAtomic: z.string().regex(/^\d+$/),
-      transactionSignatures: z.array(z.string().min(32)).min(1)
+      transactionSignatures: z.array(z.string().min(32)).min(1),
     })
     .optional(),
   transactionSignatures: z.array(z.string().min(32)).min(1),
@@ -77,10 +82,10 @@ export const recordRebalanceSchema = z.object({
     .array(
       z.object({
         assetMint: z.string().min(1),
-        quantityAtomic: z.string().regex(/^\d+$/)
-      })
+        quantityAtomic: z.string().regex(/^\d+$/),
+      }),
     )
-    .min(1)
+    .min(1),
 });
 
 export type StrategyAllocationDto = z.infer<typeof strategyAllocationSchema>;
@@ -154,7 +159,10 @@ export type StrategyInvestment = {
   strategyVersion: number;
   initialAmountUsdcAtomic: string;
   investedAt: string;
-  strategy?: Pick<StrategyListItem, "id" | "name" | "creatorWallet" | "currentVersion">;
+  strategy?: Pick<
+    StrategyListItem,
+    "id" | "name" | "creatorWallet" | "currentVersion"
+  >;
   positions?: InvestmentPositionDto[];
 };
 
@@ -172,7 +180,9 @@ export type FeeEventDto = {
   createdAt: string;
 };
 
-export function validateStrategyAllocations(allocations: readonly StrategyAllocationDto[]) {
+export function validateStrategyAllocations(
+  allocations: readonly StrategyAllocationDto[],
+) {
   const seen = new Set<string>();
   let totalWeightBps = 0;
 
@@ -194,7 +204,9 @@ export function validateStrategyAllocations(allocations: readonly StrategyAlloca
   }
 }
 
-export function canonicalizeAllocationForHash(allocations: readonly StrategyAllocationDto[]) {
+export function canonicalizeAllocationForHash(
+  allocations: readonly StrategyAllocationDto[],
+) {
   validateStrategyAllocations(allocations);
   return [...allocations]
     .sort((a, b) => a.assetMint.localeCompare(b.assetMint))
@@ -202,9 +214,13 @@ export function canonicalizeAllocationForHash(allocations: readonly StrategyAllo
     .join("\n");
 }
 
-export async function hashStrategyAllocation(allocations: readonly StrategyAllocationDto[]) {
+export async function hashStrategyAllocation(
+  allocations: readonly StrategyAllocationDto[],
+) {
   const canonical = canonicalizeAllocationForHash(allocations);
   const bytes = new TextEncoder().encode(canonical);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }

@@ -14,7 +14,10 @@ export type ValuedModelPosition = ModelPosition &
 
 export type PriceProvider = Readonly<{
   getUsdValue(assetMint: string, quantityAtomic: bigint): Promise<bigint>;
-  getQuantityForUsdValue(assetMint: string, usdcAmountAtomic: bigint): Promise<bigint>;
+  getQuantityForUsdValue(
+    assetMint: string,
+    usdcAmountAtomic: bigint,
+  ): Promise<bigint>;
 }>;
 
 export type NavSnapshotInput = Readonly<{
@@ -27,7 +30,10 @@ export type NavSnapshotResult = Readonly<{
   valuedPositions: readonly ValuedModelPosition[];
 }>;
 
-export async function calculateNav({ positions, priceProvider }: NavSnapshotInput): Promise<NavSnapshotResult> {
+export async function calculateNav({
+  positions,
+  priceProvider,
+}: NavSnapshotInput): Promise<NavSnapshotResult> {
   if (positions.length === 0) {
     throw new Error("Cannot calculate NAV without model positions.");
   }
@@ -43,7 +49,10 @@ export async function calculateNav({ positions, priceProvider }: NavSnapshotInpu
     const valueUsdcAtomic =
       position.assetMint === USDC_MINT
         ? position.quantityAtomic
-        : await priceProvider.getUsdValue(position.assetMint, position.quantityAtomic);
+        : await priceProvider.getUsdValue(
+            position.assetMint,
+            position.quantityAtomic,
+          );
 
     navUsdcAtomic += valueUsdcAtomic;
     valuedPositions.push({ ...position, valueUsdcAtomic });
@@ -54,7 +63,7 @@ export async function calculateNav({ positions, priceProvider }: NavSnapshotInpu
 
 export async function initializeModelPositions(
   allocations: readonly { assetMint: string; weightBps: number }[],
-  priceProvider: PriceProvider
+  priceProvider: PriceProvider,
 ): Promise<ModelPosition[]> {
   let allocated = 0n;
   const positions: ModelPosition[] = [];
@@ -69,7 +78,10 @@ export async function initializeModelPositions(
     const quantityAtomic =
       allocation.assetMint === USDC_MINT
         ? targetUsdcAtomic
-        : await priceProvider.getQuantityForUsdValue(allocation.assetMint, targetUsdcAtomic);
+        : await priceProvider.getQuantityForUsdValue(
+            allocation.assetMint,
+            targetUsdcAtomic,
+          );
 
     positions.push({ assetMint: allocation.assetMint, quantityAtomic });
   }
@@ -87,7 +99,10 @@ export async function rebalanceModelPositions(input: {
   costUsdcAtomic: bigint;
   positions: readonly ModelPosition[];
 }> {
-  const before = await calculateNav({ positions: input.currentPositions, priceProvider: input.priceProvider });
+  const before = await calculateNav({
+    positions: input.currentPositions,
+    priceProvider: input.priceProvider,
+  });
   let allocated = 0n;
   const positions: ModelPosition[] = [];
 
@@ -101,17 +116,26 @@ export async function rebalanceModelPositions(input: {
     const quantityAtomic =
       allocation.assetMint === USDC_MINT
         ? targetUsdcAtomic
-        : await input.priceProvider.getQuantityForUsdValue(allocation.assetMint, targetUsdcAtomic);
+        : await input.priceProvider.getQuantityForUsdValue(
+            allocation.assetMint,
+            targetUsdcAtomic,
+          );
 
     positions.push({ assetMint: allocation.assetMint, quantityAtomic });
   }
 
-  const after = await calculateNav({ positions, priceProvider: input.priceProvider });
+  const after = await calculateNav({
+    positions,
+    priceProvider: input.priceProvider,
+  });
 
   return {
     beforeNavUsdcAtomic: before.navUsdcAtomic,
     afterNavUsdcAtomic: after.navUsdcAtomic,
-    costUsdcAtomic: before.navUsdcAtomic > after.navUsdcAtomic ? before.navUsdcAtomic - after.navUsdcAtomic : 0n,
-    positions
+    costUsdcAtomic:
+      before.navUsdcAtomic > after.navUsdcAtomic
+        ? before.navUsdcAtomic - after.navUsdcAtomic
+        : 0n,
+    positions,
   };
 }

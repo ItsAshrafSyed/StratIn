@@ -13,7 +13,10 @@ export function getServerSolanaRpcUrl() {
   }
 
   if (process.env.HELIUS_API_KEY) {
-    return withApiKey(process.env.HELIUS_RPC_BASE_URL ?? HELIUS_MAINNET_RPC_URL, process.env.HELIUS_API_KEY);
+    return withApiKey(
+      process.env.HELIUS_RPC_BASE_URL ?? HELIUS_MAINNET_RPC_URL,
+      process.env.HELIUS_API_KEY,
+    );
   }
 
   return SOLANA_PUBLIC_MAINNET_RPC_URL;

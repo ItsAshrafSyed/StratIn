@@ -120,9 +120,6 @@ export default function RebalancePage({
   const previousVersion = versions.find(
     (version) => version.version === investment?.strategyVersion,
   );
-  const currentVersion = versions.find(
-    (version) => version.version === strategy?.currentVersion,
-  );
   const rebalanceActionAmountAtomic = useMemo(
     () => calculateRebalanceFeeBasis(trades),
     [trades],

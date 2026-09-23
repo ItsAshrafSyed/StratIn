@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getBase58Decoder, getTransactionDecoder } from "@solana/kit";
 import {
   useConnect,
@@ -24,10 +24,16 @@ import {
   type AllocationLeg,
 } from "@stratin/strategy-engine";
 import { appConfig } from "../config";
+import { formatAtomic, shortenAddress } from "../lib/format";
+import {
+  fetchSolBalanceLamports,
+  fetchTokenBalances,
+  rpcRequest,
+  type TokenBalance,
+} from "../lib/solana-rpc";
 import { solanaClient } from "../providers";
 import { requireStratInTransactionSupport } from "../lib/transaction-version";
 
-const RPC_URL = appConfig.solanaRpcProxyUrl;
 const MIN_SOL_FOR_FEES_LAMPORTS = 5_000_000n;
 const SLIPPAGE_BPS = 100;
 
@@ -42,13 +48,6 @@ const TEST_STRATEGY = [
   { mint: USDC_MINT, weightBps: 1000 },
 ] as const;
 
-type TokenBalance = {
-  mint: string;
-  amountAtomic: bigint;
-  decimals: number;
-  uiAmountString: string;
-};
-
 type QuoteByMint = Record<string, ExecutionQuote>;
 
 type LegStatus = {
@@ -57,28 +56,6 @@ type LegStatus = {
   signature?: string;
   error?: string;
 };
-
-type JsonRpcResponse<T> = {
-  result?: T;
-  error?: { message: string };
-};
-
-function shortenAddress(address: string) {
-  return `${address.slice(0, 4)}...${address.slice(-4)}`;
-}
-
-function formatAtomic(amount: bigint, decimals: number) {
-  const negative = amount < 0n;
-  const value = negative ? -amount : amount;
-  const scale = 10n ** BigInt(decimals);
-  const whole = value / scale;
-  const fraction = value % scale;
-  const trimmedFraction = fraction
-    .toString()
-    .padStart(decimals, "0")
-    .replace(/0+$/, "");
-  return `${negative ? "-" : ""}${whole.toString()}${trimmedFraction ? `.${trimmedFraction}` : ""}`;
-}
 
 function parseDecimalToAtomic(value: string, decimals: number) {
   const trimmed = value.trim();
@@ -118,90 +95,6 @@ function hasSignAndSendTransactions(signer: unknown): signer is {
     "signAndSendTransactions" in signer &&
     typeof signer.signAndSendTransactions === "function"
   );
-}
-
-async function rpcRequest<T>(method: string, params: unknown[]) {
-  const response = await fetch(RPC_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method,
-      params,
-    }),
-  });
-  const payload = (await response.json()) as JsonRpcResponse<T>;
-
-  if (!response.ok || payload.error) {
-    throw new Error(
-      `RPC ${method} failed: ${payload.error?.message ?? response.statusText}`,
-    );
-  }
-
-  if (payload.result === undefined) {
-    throw new Error(`RPC ${method} returned no result.`);
-  }
-
-  return payload.result;
-}
-
-async function fetchSolBalanceLamports(owner: string) {
-  const result = await rpcRequest<{ value: number }>("getBalance", [
-    owner,
-    { commitment: "confirmed" },
-  ]);
-  return BigInt(result.value);
-}
-
-async function fetchTokenBalances(owner: string, mints: readonly string[]) {
-  const balances = new Map<string, TokenBalance>();
-
-  for (const requestedMint of mints) {
-    const result = await rpcRequest<{
-      value: {
-        account: {
-          data: {
-            parsed: {
-              info: {
-                mint: string;
-                tokenAmount: {
-                  amount: string;
-                  decimals: number;
-                  uiAmountString: string;
-                };
-              };
-            };
-          };
-        };
-      }[];
-    }>("getTokenAccountsByOwner", [
-      owner,
-      { mint: requestedMint },
-      { encoding: "jsonParsed", commitment: "confirmed" },
-    ]);
-
-    for (const account of result.value) {
-      const { mint, tokenAmount } = account.account.data.parsed.info;
-
-      if (mint !== requestedMint) {
-        continue;
-      }
-
-      const existing = balances.get(mint)?.amountAtomic ?? 0n;
-      balances.set(mint, {
-        mint,
-        amountAtomic: existing + BigInt(tokenAmount.amount),
-        decimals: tokenAmount.decimals,
-        uiAmountString: formatAtomic(
-          existing + BigInt(tokenAmount.amount),
-          tokenAmount.decimals,
-        ),
-      });
-    }
-  }
-
-  return balances;
 }
 
 async function confirmSignature(signature: string) {
@@ -316,7 +209,7 @@ export default function ExecutionSpikePage() {
     }
   }
 
-  async function loadBalances(address: string) {
+  const loadBalances = useCallback(async (address: string) => {
     const mints = SUPPORTED_TOKENIZED_EQUITIES.map((asset) => asset.mint);
     const [nextSolBalance, nextBalances] = await Promise.all([
       fetchSolBalanceLamports(address),
@@ -325,9 +218,9 @@ export default function ExecutionSpikePage() {
     setSolBalanceLamports(nextSolBalance);
     setBalances(nextBalances);
     return { nextBalances, nextSolBalance };
-  }
+  }, []);
 
-  async function refreshBalances() {
+  const refreshBalances = useCallback(async () => {
     if (!walletAddress) {
       return null;
     }
@@ -347,13 +240,13 @@ export default function ExecutionSpikePage() {
     } finally {
       setIsRefreshingBalances(false);
     }
-  }
+  }, [loadBalances, walletAddress]);
 
   useEffect(() => {
     if (walletAddress) {
       void refreshBalances();
     }
-  }, [walletAddress]);
+  }, [refreshBalances, walletAddress]);
 
   async function requestQuotes() {
     if (!allocation) {

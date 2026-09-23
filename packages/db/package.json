@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit",
+    "lint": "eslint src drizzle.config.ts --max-warnings=0",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate"
   },

@@ -5,11 +5,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "StratIn",
-  description: "Non-custodial tokenized-equity strategies on Solana"
+  description: "Non-custodial tokenized-equity strategies on Solana",
 };
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {

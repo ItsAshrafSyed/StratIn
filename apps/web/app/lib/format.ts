@@ -8,7 +8,10 @@ export function formatAtomic(amount: bigint, decimals: number) {
   const scale = 10n ** BigInt(decimals);
   const whole = value / scale;
   const fraction = value % scale;
-  const trimmedFraction = fraction.toString().padStart(decimals, "0").replace(/0+$/, "");
+  const trimmedFraction = fraction
+    .toString()
+    .padStart(decimals, "0")
+    .replace(/0+$/, "");
   return `${negative ? "-" : ""}${whole.toString()}${trimmedFraction ? `.${trimmedFraction}` : ""}`;
 }
 
@@ -25,11 +28,16 @@ export function parseDecimalToAtomic(value: string, decimals: number) {
     throw new Error(`Amount supports at most ${decimals} decimal places.`);
   }
 
-  return BigInt(wholePart) * 10n ** BigInt(decimals) + BigInt(fractionPart.padEnd(decimals, "0"));
+  return (
+    BigInt(wholePart) * 10n ** BigInt(decimals) +
+    BigInt(fractionPart.padEnd(decimals, "0"))
+  );
 }
 
 export function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(
-    new Date(value)
-  );
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }

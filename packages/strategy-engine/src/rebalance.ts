@@ -48,9 +48,19 @@ export function calculateRebalanceTrades(input: {
     throw new Error("Target allocation weights must total 10000 bps.");
   }
 
-  const totalValueUsdcAtomic = input.positions.reduce((sum, position) => sum + position.valueUsdcAtomic, 0n);
-  const currentByMint = new Map(input.positions.map((position) => [position.assetMint, position.valueUsdcAtomic]));
-  const targetMints = new Set(input.targetAllocations.map((allocation) => allocation.assetMint));
+  const totalValueUsdcAtomic = input.positions.reduce(
+    (sum, position) => sum + position.valueUsdcAtomic,
+    0n,
+  );
+  const currentByMint = new Map(
+    input.positions.map((position) => [
+      position.assetMint,
+      position.valueUsdcAtomic,
+    ]),
+  );
+  const targetMints = new Set(
+    input.targetAllocations.map((allocation) => allocation.assetMint),
+  );
   const trades: RebalanceTradeIntent[] = [];
   let allocated = 0n;
 
@@ -65,15 +75,31 @@ export function calculateRebalanceTrades(input: {
     const delta = targetValue - currentValue;
 
     if (delta > dust && allocation.assetMint !== USDC_MINT) {
-      trades.push({ side: "BUY", assetMint: allocation.assetMint, valueUsdcAtomic: delta });
+      trades.push({
+        side: "BUY",
+        assetMint: allocation.assetMint,
+        valueUsdcAtomic: delta,
+      });
     } else if (delta < -dust && allocation.assetMint !== USDC_MINT) {
-      trades.push({ side: "SELL", assetMint: allocation.assetMint, valueUsdcAtomic: -delta });
+      trades.push({
+        side: "SELL",
+        assetMint: allocation.assetMint,
+        valueUsdcAtomic: -delta,
+      });
     }
   });
 
   for (const position of input.positions) {
-    if (!targetMints.has(position.assetMint) && position.assetMint !== USDC_MINT && position.valueUsdcAtomic > dust) {
-      trades.push({ side: "SELL", assetMint: position.assetMint, valueUsdcAtomic: position.valueUsdcAtomic });
+    if (
+      !targetMints.has(position.assetMint) &&
+      position.assetMint !== USDC_MINT &&
+      position.valueUsdcAtomic > dust
+    ) {
+      trades.push({
+        side: "SELL",
+        assetMint: position.assetMint,
+        valueUsdcAtomic: position.valueUsdcAtomic,
+      });
     }
   }
 

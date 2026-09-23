@@ -3,9 +3,9 @@ import { navIntervalStart, processNavCron } from "./nav-cron";
 
 describe("NAV cron", () => {
   it("rounds scheduled time down to the 15-minute bucket", () => {
-    expect(navIntervalStart(new Date("2026-09-21T10:37:42.000Z")).toISOString()).toBe(
-      "2026-09-21T10:30:00.000Z"
-    );
+    expect(
+      navIntervalStart(new Date("2026-09-21T10:37:42.000Z")).toISOString(),
+    ).toBe("2026-09-21T10:30:00.000Z");
   });
 
   it("processes active strategy ids", async () => {
@@ -16,7 +16,7 @@ describe("NAV cron", () => {
     expect(refresh).toHaveBeenCalledTimes(2);
     expect(results).toEqual([
       { strategyId: "strategy-a", ok: true },
-      { strategyId: "strategy-b", ok: true }
+      { strategyId: "strategy-b", ok: true },
     ]);
   });
 
@@ -27,13 +27,16 @@ describe("NAV cron", () => {
       }
     });
 
-    const results = await processNavCron(["strategy-a", "strategy-b", "strategy-c"], refresh);
+    const results = await processNavCron(
+      ["strategy-a", "strategy-b", "strategy-c"],
+      refresh,
+    );
 
     expect(refresh).toHaveBeenCalledTimes(3);
     expect(results).toEqual([
       { strategyId: "strategy-a", ok: true },
       { strategyId: "strategy-b", ok: false, error: "missing price" },
-      { strategyId: "strategy-c", ok: true }
+      { strategyId: "strategy-c", ok: true },
     ]);
   });
 

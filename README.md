@@ -72,6 +72,8 @@ Registry RPC and execution RPC are intentionally separate. Devnet registry testi
 ```bash
 pnpm --filter @stratin/strategy-engine test
 pnpm --filter @stratin/api test
+pnpm format:check
+pnpm lint
 pnpm typecheck
 pnpm --filter @stratin/web build
 pnpm --filter @stratin/api build

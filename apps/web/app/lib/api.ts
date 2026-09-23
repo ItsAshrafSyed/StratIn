@@ -7,7 +7,7 @@ import type {
   StrategyInvestment,
   FeeConfig,
   StrategyListItem,
-  StrategyVersionDto
+  StrategyVersionDto,
 } from "@stratin/shared";
 import { appConfig } from "../config";
 
@@ -17,9 +17,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...init?.headers
+      ...init?.headers,
     },
-    cache: "no-store"
+    cache: "no-store",
   });
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -27,14 +27,16 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await response.text();
     throw new Error(
       `Expected JSON from ${url}, got ${response.status} ${response.statusText || "response"} (${contentType || "no content-type"}). ` +
-        `Preview: ${body.slice(0, 120)}`
+        `Preview: ${body.slice(0, 120)}`,
     );
   }
 
   const payload = (await response.json()) as T & { error?: string };
 
   if (!response.ok) {
-    throw new Error(payload.error ?? `API request failed with status ${response.status}.`);
+    throw new Error(
+      payload.error ?? `API request failed with status ${response.status}.`,
+    );
   }
 
   return payload;
@@ -43,7 +45,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export async function createStrategy(input: CreateStrategyInput) {
   return apiFetch<{ strategy: StrategyDetail }>("/strategies", {
     method: "POST",
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
   });
 }
 
@@ -56,8 +58,10 @@ export async function getStrategy(id: string) {
 }
 
 export async function refreshStrategyNav(id: string) {
-  return apiFetch<{ snapshot: NonNullable<StrategyDetail["latestNavSnapshot"]> }>(`/strategies/${id}/nav/refresh`, {
-    method: "POST"
+  return apiFetch<{
+    snapshot: NonNullable<StrategyDetail["latestNavSnapshot"]>;
+  }>(`/strategies/${id}/nav/refresh`, {
+    method: "POST",
   });
 }
 
@@ -66,7 +70,9 @@ export async function getFeeConfig() {
 }
 
 export async function listStrategyVersions(id: string) {
-  return apiFetch<{ versions: StrategyVersionDto[] }>(`/strategies/${id}/versions`);
+  return apiFetch<{ versions: StrategyVersionDto[] }>(
+    `/strategies/${id}/versions`,
+  );
 }
 
 export async function verifyStrategyRegistry(id: string) {
@@ -83,35 +89,57 @@ export async function verifyStrategyRegistry(id: string) {
   }>(`/strategies/${id}/registry/verify`);
 }
 
-export async function publishRebalance(strategyId: string, input: PublishRebalanceInput) {
-  return apiFetch<{ strategy: StrategyDetail }>(`/strategies/${strategyId}/rebalances`, {
-    method: "POST",
-    body: JSON.stringify(input)
-  });
+export async function publishRebalance(
+  strategyId: string,
+  input: PublishRebalanceInput,
+) {
+  return apiFetch<{ strategy: StrategyDetail }>(
+    `/strategies/${strategyId}/rebalances`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export async function listStrategistStrategies(wallet: string) {
-  return apiFetch<{ strategies: StrategyListItem[] }>(`/strategists/${wallet}/strategies`);
+  return apiFetch<{ strategies: StrategyListItem[] }>(
+    `/strategists/${wallet}/strategies`,
+  );
 }
 
-export async function recordInvestment(strategyId: string, input: RecordInvestmentInput) {
-  return apiFetch<{ investment: StrategyInvestment }>(`/strategies/${strategyId}/investments`, {
-    method: "POST",
-    body: JSON.stringify(input)
-  });
+export async function recordInvestment(
+  strategyId: string,
+  input: RecordInvestmentInput,
+) {
+  return apiFetch<{ investment: StrategyInvestment }>(
+    `/strategies/${strategyId}/investments`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export async function listInvestorInvestments(wallet: string) {
-  return apiFetch<{ investments: StrategyInvestment[] }>(`/investors/${wallet}/investments`);
+  return apiFetch<{ investments: StrategyInvestment[] }>(
+    `/investors/${wallet}/investments`,
+  );
 }
 
 export async function getInvestment(id: string) {
   return apiFetch<{ investment: StrategyInvestment }>(`/investments/${id}`);
 }
 
-export async function recordRebalance(investmentId: string, input: RecordRebalanceInput) {
-  return apiFetch<{ investment: StrategyInvestment }>(`/investments/${investmentId}/rebalances`, {
-    method: "POST",
-    body: JSON.stringify(input)
-  });
+export async function recordRebalance(
+  investmentId: string,
+  input: RecordRebalanceInput,
+) {
+  return apiFetch<{ investment: StrategyInvestment }>(
+    `/investments/${investmentId}/rebalances`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }

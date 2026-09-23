@@ -12,6 +12,7 @@ import {
   type Instruction,
 } from "@solana/kit";
 import { parseLatestBlockhashRpcResult } from "./latest-blockhash";
+import { registryRpcRequest as rpcRequest } from "./registry-rpc";
 import { STRATIN_TRANSACTION_VERSION } from "./transaction-version";
 
 export const STRATEGY_REGISTRY_PROGRAM_ID =
@@ -215,9 +216,4 @@ export function hexToBytes(hex: string) {
 
 export function bytesToHex(bytes: Uint8Array) {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function rpcRequest<T>(method: string, params: unknown[]) {
-  const { registryRpcRequest } = await import("./registry-rpc");
-  return registryRpcRequest<T>(method, params);
 }

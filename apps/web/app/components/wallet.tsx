@@ -6,7 +6,7 @@ import {
   useConnectedWallet,
   useDisconnect,
   useIsWalletReady,
-  useWallets
+  useWallets,
 } from "@solana/kit-plugin-wallet/react";
 import { solanaClient } from "../providers";
 import { shortenAddress } from "../lib/format";
@@ -34,20 +34,21 @@ export function useStratInWallet() {
     connectSelectedWallet,
     disconnectWallet,
     isConnecting,
-    isDisconnecting
+    isDisconnecting,
   };
 }
 
 export function WalletModal({
   isOpen,
   onClose,
-  onError
+  onError,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onError: (message: string) => void;
 }) {
-  const { wallets, isWalletReady, isConnecting, connectSelectedWallet } = useStratInWallet();
+  const { wallets, isWalletReady, isConnecting, connectSelectedWallet } =
+    useStratInWallet();
 
   if (!isOpen) {
     return null;
@@ -63,7 +64,9 @@ export function WalletModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-white">Connect Wallet</h2>
-            <p className="mt-1 text-sm text-slate-400">Choose an installed Solana wallet.</p>
+            <p className="mt-1 text-sm text-slate-400">
+              Choose an installed Solana wallet.
+            </p>
           </div>
           <button
             aria-label="Close wallet modal"
@@ -86,7 +89,11 @@ export function WalletModal({
                   void connectSelectedWallet(wallet)
                     .then(onClose)
                     .catch((error) =>
-                      onError(error instanceof Error ? error.message : "Wallet connection failed.")
+                      onError(
+                        error instanceof Error
+                          ? error.message
+                          : "Wallet connection failed.",
+                      ),
                     );
                 }}
                 type="button"
@@ -106,19 +113,27 @@ export function WalletModal({
   );
 }
 
-export function WalletButton({ onError }: { onError: (message: string) => void }) {
+export function WalletButton({
+  onError,
+}: {
+  onError: (message: string) => void;
+}) {
   const {
     hasMounted,
     walletAddress,
     isWalletReady,
     disconnectWallet,
-    isDisconnecting
+    isDisconnecting,
   } = useStratInWallet();
   const [isOpen, setIsOpen] = useState(false);
 
   if (!hasMounted) {
     return (
-      <button className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 opacity-60" disabled type="button">
+      <button
+        className="rounded-md bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 opacity-60"
+        disabled
+        type="button"
+      >
         Finding wallets
       </button>
     );
@@ -145,7 +160,11 @@ export function WalletButton({ onError }: { onError: (message: string) => void }
           {isWalletReady ? "Connect Wallet" : "Finding wallets"}
         </button>
       )}
-      <WalletModal isOpen={isOpen} onClose={() => setIsOpen(false)} onError={onError} />
+      <WalletModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onError={onError}
+      />
     </>
   );
 }

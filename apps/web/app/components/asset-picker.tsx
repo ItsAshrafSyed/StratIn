@@ -106,8 +106,6 @@ export function AssetPicker({
           >
             {currentAsset?.symbol.slice(0, 2) ?? "?"}
             {currentAsset?.iconUrl ? (
-              // The URL is part of StratIn's reviewed static asset allowlist.
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt=""
                 className="absolute inset-0 h-full w-full bg-white object-cover"
@@ -188,8 +186,6 @@ export function AssetPicker({
                       >
                         {asset.symbol.slice(0, 2)}
                         {asset.iconUrl ? (
-                          // The URL is part of StratIn's reviewed static asset allowlist.
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             alt=""
                             className="absolute inset-0 h-full w-full bg-white object-cover"

@@ -3,7 +3,7 @@ import type {
   BuiltExecutionTransaction,
   ExecutionProvider,
   ExecutionQuote,
-  QuoteRequest
+  QuoteRequest,
 } from "./types";
 
 const DEFAULT_JUPITER_BASE_URL = "https://lite-api.jup.ag/swap/v1";
@@ -37,7 +37,7 @@ export class JupiterExecutionProvider implements ExecutionProvider {
     inputMint,
     outputMint,
     amountAtomic,
-    slippageBps
+    slippageBps,
   }: QuoteRequest): Promise<ExecutionQuote> {
     const params = new URLSearchParams({
       inputMint,
@@ -46,19 +46,24 @@ export class JupiterExecutionProvider implements ExecutionProvider {
       slippageBps: slippageBps.toString(),
       restrictIntermediateTokens: "true",
       instructionVersion: "V2",
-      asLegacyTransaction: "false"
+      asLegacyTransaction: "false",
     });
 
     const response = await fetch(`${this.baseUrl}/quote?${params.toString()}`);
-    const quote = (await response.json()) as JupiterQuoteResponse & { error?: string };
+    const quote = (await response.json()) as JupiterQuoteResponse & {
+      error?: string;
+    };
 
     if (!response.ok || quote.error) {
-      throw new Error(quote.error ?? `Jupiter quote failed with status ${response.status}.`);
+      throw new Error(
+        quote.error ?? `Jupiter quote failed with status ${response.status}.`,
+      );
     }
 
     const routeLabels =
-      quote.routePlan?.flatMap((route) => (route.swapInfo?.label ? [route.swapInfo.label] : [])) ??
-      [];
+      quote.routePlan?.flatMap((route) =>
+        route.swapInfo?.label ? [route.swapInfo.label] : [],
+      ) ?? [];
 
     return {
       inputMint: quote.inputMint,
@@ -68,18 +73,18 @@ export class JupiterExecutionProvider implements ExecutionProvider {
       slippageBps: quote.slippageBps,
       priceImpactPct: quote.priceImpactPct,
       routeLabels,
-      rawQuote: quote
+      rawQuote: quote,
     };
   }
 
   async buildTransaction({
     quote,
-    userPublicKey
+    userPublicKey,
   }: BuildTransactionRequest): Promise<BuiltExecutionTransaction> {
     const response = await fetch(`${this.baseUrl}/swap`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         quoteResponse: quote.rawQuote,
@@ -90,20 +95,23 @@ export class JupiterExecutionProvider implements ExecutionProvider {
         prioritizationFeeLamports: {
           priorityLevelWithMaxLamports: {
             maxLamports: 1_000_000,
-            priorityLevel: "high"
-          }
-        }
-      })
+            priorityLevel: "high",
+          },
+        },
+      }),
     });
     const swap = (await response.json()) as JupiterSwapResponse;
 
     if (!response.ok || swap.error || !swap.swapTransaction) {
-      throw new Error(swap.error ?? `Jupiter swap build failed with status ${response.status}.`);
+      throw new Error(
+        swap.error ??
+          `Jupiter swap build failed with status ${response.status}.`,
+      );
     }
 
     return {
       serializedTransactionBase64: swap.swapTransaction,
-      lastValidBlockHeight: swap.lastValidBlockHeight
+      lastValidBlockHeight: swap.lastValidBlockHeight,
     };
   }
 }

@@ -29,7 +29,9 @@ export function AppNav() {
         </div>
       </header>
       {error ? (
-        <div className="mx-auto mt-3 w-full max-w-6xl px-5 text-sm text-red-300 sm:px-8">{error}</div>
+        <div className="mx-auto mt-3 w-full max-w-6xl px-5 text-sm text-red-300 sm:px-8">
+          {error}
+        </div>
       ) : null}
     </>
   );
