@@ -2,5 +2,5 @@
 # The real .dev.vars file is ignored by Git.
 
 DATABASE_URL=
-REGISTRY_SOLANA_RPC_URL=https://api.devnet.solana.com
+REGISTRY_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001

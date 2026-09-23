@@ -30,7 +30,8 @@
 
 - Store `DATABASE_URL`, RPC credentials, and other secrets using the deployment platform's secret facility, not committed configuration.
 - Set `ALLOWED_ORIGINS` to a comma-separated exact allowlist containing the production Vercel origin and only deliberately supported preview origins.
-- Set `REGISTRY_NETWORK` and `REGISTRY_SOLANA_RPC_URL` together and verify the genesis hash during preflight.
+- Set `REGISTRY_NETWORK=mainnet-beta` and `REGISTRY_SOLANA_RPC_URL` to a mainnet endpoint, and verify the mainnet genesis hash during preflight.
+- Keep registry and execution RPC variables separate even when both target mainnet.
 - Configure allowed production web origins and production web/API URLs.
 - Apply all Drizzle migrations to the intended Neon database before traffic.
 - Confirm the NAV cron, observability, and failure alerts.
@@ -62,6 +63,7 @@ Automated reconciliation remains future work.
 
 ## Deployment state
 
-- Registry behavior was previously validated on Solana devnet.
-- Mainnet registry deployment has not been broadcast.
-- Do not fund, deploy, create a buffer, or modify upgrade authority without separate explicit approval and preflight.
+- Registry behavior was validated on Solana devnet.
+- The registry is deployed on mainnet at `3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs`.
+- Mainnet deployment transaction: `2SVxMJfB1jeiksEXpC3upUVtjwNxxJgXc7N2n4Zk4JMLNqSmqzwmiyt6cc7RDA5wsG7WQ26btaCDEmkREbkfJUs4`.
+- Do not redeploy, upgrade, close, or modify upgrade authority without separate explicit approval and preflight.

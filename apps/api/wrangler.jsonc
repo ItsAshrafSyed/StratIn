@@ -16,7 +16,7 @@
   },
   "vars": {
     "ENVIRONMENT": "production",
-    "REGISTRY_NETWORK": "devnet",
+    "REGISTRY_NETWORK": "mainnet-beta",
     "JUPITER_SWAP_API_BASE_URL": "https://lite-api.jup.ag/swap/v1",
     "ENTRY_FEE_BPS": "25",
     "REBALANCE_FEE_BPS": "10",

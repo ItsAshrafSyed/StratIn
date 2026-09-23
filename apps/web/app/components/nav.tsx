@@ -15,9 +15,6 @@ export function AppNav() {
             StratIn
           </Link>
           <nav className="flex flex-1 items-center gap-4 text-sm text-slate-300">
-            <Link className="hover:text-white" href="/">
-              Explore
-            </Link>
             <Link className="hover:text-white" href="/my-investments">
               My Investments
             </Link>

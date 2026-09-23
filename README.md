@@ -60,7 +60,7 @@ pnpm --filter @stratin/api dev
 pnpm --filter @stratin/web dev
 ```
 
-Registry RPC and execution RPC are intentionally separate. Devnet registry testing can use `REGISTRY_SOLANA_RPC_URL` on devnet while execution remains on mainnet for Jupiter/tokenized-equity routes.
+Registry RPC and execution RPC remain intentionally separate even though production currently points both at mainnet. Explicit devnet registry tests must override only the registry RPC/network and must not move Jupiter or tokenized-equity execution off mainnet.
 
 For a Worker deployment, configure `DATABASE_URL`, `REGISTRY_SOLANA_RPC_URL`, and `ALLOWED_ORIGINS` as Worker secrets before deploying. `ALLOWED_ORIGINS` is a comma-separated exact allowlist containing the production Vercel origin and only the preview origins that should be able to call the API. The automated NAV refresh runs hourly.
 
@@ -95,7 +95,7 @@ NO_DNA=1 anchor test --skip-build --skip-deploy --validator legacy
 
 The Anchor registry commits immutable strategy/version allocation hashes. It does not custody assets, execute trades, calculate NAV, store marketplace data, or handle fees. Backend verification validates the configured Solana cluster, account ownership/type/shape, strategist identity, strategy/version identity, and allocation hashes before a commitment is marked verified.
 
-The registry was previously validated on Solana devnet. Mainnet registry deployment has not been broadcast.
+The registry was validated on devnet and deployed to mainnet at program ID `3twgH9P4Knu51EqMZb5Fx2CSX1vUkw5Da4GYSUjiNzNs`. The mainnet deployment transaction is `2SVxMJfB1jeiksEXpC3upUVtjwNxxJgXc7N2n4Zk4JMLNqSmqzwmiyt6cc7RDA5wsG7WQ26btaCDEmkREbkfJUs4`.
 
 ## MVP security boundary
 
