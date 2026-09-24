@@ -1,4 +1,5 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
+import { drizzle as drizzleHttp } from "drizzle-orm/neon-http";
+import { drizzle as drizzleWebSocket } from "drizzle-orm/neon-serverless";
 import * as schema from "@stratin/db";
 
 export type Env = {
@@ -22,5 +23,13 @@ export function getDb(env: Env) {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  return drizzle(env.DATABASE_URL, { schema });
+  return drizzleWebSocket(env.DATABASE_URL, { schema });
+}
+
+export function getReadDb(env: Env) {
+  if (!env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is not configured.");
+  }
+
+  return drizzleHttp(env.DATABASE_URL, { schema });
 }

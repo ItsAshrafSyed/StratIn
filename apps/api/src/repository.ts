@@ -38,6 +38,7 @@ import {
 import type { getDb } from "./db";
 
 type Db = ReturnType<typeof getDb>;
+type ReadDb = Pick<Db, "select">;
 
 function iso(date: Date) {
   return date.toISOString();
@@ -74,7 +75,7 @@ function assertMatchingRegistryHash(expectedHash: string, actualHash: string) {
 }
 
 async function getVersionAllocations(
-  db: Db,
+  db: ReadDb,
   strategyId: string,
   versionNumber: number,
 ) {
@@ -103,7 +104,7 @@ async function getVersionAllocations(
 }
 
 async function listStrategyVersionsInternal(
-  db: Db,
+  db: ReadDb,
   strategyId: string,
 ): Promise<StrategyVersionDto[]> {
   const rows = await db
@@ -151,7 +152,7 @@ async function listStrategyVersionsInternal(
 }
 
 async function hydrateStrategies(
-  db: Db,
+  db: ReadDb,
   strategyRows: (typeof strategies.$inferSelect)[],
 ): Promise<StrategyDetail[]> {
   if (strategyRows.length === 0) {
@@ -310,7 +311,7 @@ async function hydrateStrategies(
 }
 
 async function hydrateStrategy(
-  db: Db,
+  db: ReadDb,
   strategy: typeof strategies.$inferSelect,
 ): Promise<StrategyDetail> {
   const [hydrated] = await hydrateStrategies(db, [strategy]);
@@ -321,6 +322,7 @@ export async function createStrategy(
   db: Db,
   input: CreateStrategyInput,
   priceProvider?: PriceProvider,
+  readDb: ReadDb = db,
 ): Promise<StrategyDetail> {
   validateStrategyAllocations(input.allocations);
   const allocationHash = await hashStrategyAllocation(input.allocations);
@@ -389,10 +391,10 @@ export async function createStrategy(
     return createdStrategy;
   });
 
-  return hydrateStrategy(db, strategy);
+  return hydrateStrategy(readDb, strategy);
 }
 
-export async function listStrategies(db: Db): Promise<StrategyListItem[]> {
+export async function listStrategies(db: ReadDb): Promise<StrategyListItem[]> {
   const rows = await db
     .select()
     .from(strategies)
@@ -403,7 +405,7 @@ export async function listStrategies(db: Db): Promise<StrategyListItem[]> {
 }
 
 export async function getStrategy(
-  db: Db,
+  db: ReadDb,
   id: string,
 ): Promise<StrategyDetail | null> {
   const [strategy] = await db
@@ -515,7 +517,7 @@ export async function refreshStrategyNav(
 }
 
 export async function listStrategyVersions(
-  db: Db,
+  db: ReadDb,
   strategyId: string,
 ): Promise<StrategyVersionDto[]> {
   return listStrategyVersionsInternal(db, strategyId);
@@ -526,6 +528,7 @@ export async function publishRebalance(
   strategyId: string,
   input: PublishRebalanceInput,
   priceProvider: PriceProvider,
+  readDb: ReadDb = db,
 ): Promise<StrategyDetail> {
   validateStrategyAllocations(input.allocations);
 
@@ -645,11 +648,11 @@ export async function publishRebalance(
     return updatedStrategy;
   });
 
-  return hydrateStrategy(db, updated);
+  return hydrateStrategy(readDb, updated);
 }
 
 export async function listStrategistStrategies(
-  db: Db,
+  db: ReadDb,
   wallet: string,
 ): Promise<StrategyListItem[]> {
   const rows = await db
@@ -747,7 +750,7 @@ export async function recordInvestment(
 }
 
 export async function listInvestorInvestments(
-  db: Db,
+  db: ReadDb,
   wallet: string,
 ): Promise<StrategyInvestment[]> {
   const rows = await db
@@ -790,7 +793,7 @@ export async function listInvestorInvestments(
 }
 
 export async function getInvestment(
-  db: Db,
+  db: ReadDb,
   investmentId: string,
 ): Promise<StrategyInvestment | null> {
   const [row] = await db
@@ -927,7 +930,7 @@ export async function recordRebalance(
   };
 }
 
-export async function listActiveStrategyIds(db: Db): Promise<string[]> {
+export async function listActiveStrategyIds(db: ReadDb): Promise<string[]> {
   const rows = await db
     .select({ id: strategies.id })
     .from(strategies)

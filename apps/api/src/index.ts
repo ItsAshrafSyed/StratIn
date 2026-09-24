@@ -13,7 +13,7 @@ import {
   type StrategyVersionDto,
 } from "@stratin/shared";
 import { resolveCorsOrigin } from "./cors";
-import { getDb, type Env } from "./db";
+import { getDb, getReadDb, type Env } from "./db";
 import { navIntervalStart, processNavCron } from "./nav-cron";
 import { JupiterPriceProvider } from "./pricing";
 import {
@@ -57,8 +57,7 @@ app.onError((error, c) => {
   if (error instanceof ZodError) {
     return c.json(
       {
-        error:
-          error.issues[0]?.message ?? "The request contains invalid data.",
+        error: error.issues[0]?.message ?? "The request contains invalid data.",
         issues: error.issues,
       },
       400,
@@ -91,7 +90,13 @@ app.get("/config/fees", (c) => {
 app.post("/strategies", async (c) => {
   const body = createStrategySchema.parse(await c.req.json());
   const db = getDb(c.env);
-  let strategy = await createStrategy(db, body, getPriceProvider(c.env));
+  const readDb = getReadDb(c.env);
+  let strategy = await createStrategy(
+    db,
+    body,
+    getPriceProvider(c.env),
+    readDb,
+  );
   const registryVerification = body.registryCommitment
     ? await verifyAndPersistRegistryVersion(
         db,
@@ -100,17 +105,17 @@ app.post("/strategies", async (c) => {
         strategy.versions?.[0],
       )
     : undefined;
-  strategy = (await getStrategy(db, strategy.id)) ?? strategy;
+  strategy = (await getStrategy(readDb, strategy.id)) ?? strategy;
   return c.json({ strategy, registryVerification }, 201);
 });
 
 app.get("/strategies", async (c) => {
-  const strategies = await listStrategies(getDb(c.env));
+  const strategies = await listStrategies(getReadDb(c.env));
   return c.json({ strategies });
 });
 
 app.get("/strategies/:id", async (c) => {
-  const strategy = await getStrategy(getDb(c.env), c.req.param("id"));
+  const strategy = await getStrategy(getReadDb(c.env), c.req.param("id"));
 
   if (!strategy) {
     return c.json({ error: "Strategy not found." }, 404);
@@ -129,13 +134,16 @@ app.post("/strategies/:id/nav/refresh", async (c) => {
 });
 
 app.get("/strategies/:id/versions", async (c) => {
-  const versions = await listStrategyVersions(getDb(c.env), c.req.param("id"));
+  const versions = await listStrategyVersions(
+    getReadDb(c.env),
+    c.req.param("id"),
+  );
   return c.json({ versions });
 });
 
 app.get("/strategies/:id/registry/verify", async (c) => {
   const db = getDb(c.env);
-  const strategy = await getStrategy(db, c.req.param("id"));
+  const strategy = await getStrategy(getReadDb(c.env), c.req.param("id"));
 
   if (!strategy) {
     return c.json({ error: "Strategy not found." }, 404);
@@ -158,11 +166,13 @@ app.get("/strategies/:id/registry/verify", async (c) => {
 app.post("/strategies/:id/rebalances", async (c) => {
   const body = publishRebalanceSchema.parse(await c.req.json());
   const db = getDb(c.env);
+  const readDb = getReadDb(c.env);
   let strategy = await publishRebalance(
     db,
     c.req.param("id"),
     body,
     getPriceProvider(c.env),
+    readDb,
   );
   const version = strategy.versions?.find(
     (item) => item.version === strategy.currentVersion,
@@ -170,13 +180,13 @@ app.post("/strategies/:id/rebalances", async (c) => {
   const registryVerification = body.registryCommitment
     ? await verifyAndPersistRegistryVersion(db, c.env, strategy, version)
     : undefined;
-  strategy = (await getStrategy(db, strategy.id)) ?? strategy;
+  strategy = (await getStrategy(readDb, strategy.id)) ?? strategy;
   return c.json({ strategy, registryVerification }, 201);
 });
 
 app.get("/strategists/:wallet/strategies", async (c) => {
   const strategies = await listStrategistStrategies(
-    getDb(c.env),
+    getReadDb(c.env),
     c.req.param("wallet"),
   );
   return c.json({ strategies });
@@ -195,14 +205,14 @@ app.post("/strategies/:id/investments", async (c) => {
 
 app.get("/investors/:wallet/investments", async (c) => {
   const investments = await listInvestorInvestments(
-    getDb(c.env),
+    getReadDb(c.env),
     c.req.param("wallet"),
   );
   return c.json({ investments });
 });
 
 app.get("/investments/:id", async (c) => {
-  const investment = await getInvestment(getDb(c.env), c.req.param("id"));
+  const investment = await getInvestment(getReadDb(c.env), c.req.param("id"));
 
   if (!investment) {
     return c.json({ error: "Investment not found." }, 404);
@@ -226,7 +236,7 @@ async function refreshActiveStrategiesNav(env: Env, scheduledAt = new Date()) {
   const db = getDb(env);
   const priceProvider = getPriceProvider(env);
   const intervalStart = navIntervalStart(scheduledAt);
-  const strategyIds = await listActiveStrategyIds(db);
+  const strategyIds = await listActiveStrategyIds(getReadDb(env));
   const results = await processNavCron(strategyIds, (strategyId) =>
     refreshStrategyNav(db, strategyId, priceProvider, intervalStart).then(
       () => undefined,
