@@ -1,4 +1,4 @@
-import { and, asc, countDistinct, desc, eq, sum } from "drizzle-orm";
+import { and, asc, countDistinct, desc, eq, inArray, sum } from "drizzle-orm";
 import {
   feeEvents,
   investmentPositions,
@@ -150,74 +150,171 @@ async function listStrategyVersionsInternal(
   return [...byVersion.values()];
 }
 
+async function hydrateStrategies(
+  db: Db,
+  strategyRows: (typeof strategies.$inferSelect)[],
+): Promise<StrategyDetail[]> {
+  if (strategyRows.length === 0) {
+    return [];
+  }
+
+  const strategyIds = strategyRows.map((strategy) => strategy.id);
+  const creatorWallets = [
+    ...new Set(strategyRows.map((strategy) => strategy.creatorWallet)),
+  ];
+
+  const [
+    versionRows,
+    investmentStatsRows,
+    strategistStatsRows,
+    earningsStatsRows,
+    snapshotRows,
+  ] = await Promise.all([
+    db
+      .select({
+        version: strategyVersions,
+        allocation: strategyAllocations,
+      })
+      .from(strategyVersions)
+      .leftJoin(
+        strategyAllocations,
+        eq(strategyAllocations.strategyVersionId, strategyVersions.id),
+      )
+      .where(inArray(strategyVersions.strategyId, strategyIds))
+      .orderBy(asc(strategyVersions.version)),
+    db
+      .select({
+        strategyId: strategyInvestments.strategyId,
+        investorCount: countDistinct(strategyInvestments.investorWallet),
+        capitalFollowingUsdcAtomic: sum(
+          strategyInvestments.initialAmountUsdcAtomic,
+        ),
+      })
+      .from(strategyInvestments)
+      .where(inArray(strategyInvestments.strategyId, strategyIds))
+      .groupBy(strategyInvestments.strategyId),
+    db
+      .select({
+        creatorWallet: strategies.creatorWallet,
+        strategyCount: countDistinct(strategies.id),
+      })
+      .from(strategies)
+      .where(inArray(strategies.creatorWallet, creatorWallets))
+      .groupBy(strategies.creatorWallet),
+    db
+      .select({
+        strategistWallet: feeEvents.strategistWallet,
+        strategistEarningsUsdcAtomic: sum(feeEvents.strategistFeeUsdcAtomic),
+      })
+      .from(feeEvents)
+      .where(inArray(feeEvents.strategistWallet, creatorWallets))
+      .groupBy(feeEvents.strategistWallet),
+    db
+      .select()
+      .from(strategyNavSnapshots)
+      .where(inArray(strategyNavSnapshots.strategyId, strategyIds))
+      .orderBy(asc(strategyNavSnapshots.timestamp)),
+  ]);
+
+  const versionsByStrategy = new Map<string, StrategyVersionDto[]>();
+  const versionsById = new Map<string, StrategyVersionDto>();
+  for (const row of versionRows) {
+    let version = versionsById.get(row.version.id);
+    if (!version) {
+      version = {
+        id: row.version.id,
+        version: row.version.version,
+        createdAt: iso(row.version.createdAt),
+        allocationHash: row.version.allocationHash,
+        solanaTransactionSignature: row.version.solanaTransactionSignature,
+        registryStrategyPda: row.version.registryStrategyPda,
+        registryVersionPda: row.version.registryVersionPda,
+        verifiedAt: row.version.verifiedAt ? iso(row.version.verifiedAt) : null,
+        verificationStatus: row.version.verificationStatus,
+        allocations: [],
+      };
+      versionsById.set(row.version.id, version);
+      const strategyVersionsForId =
+        versionsByStrategy.get(row.version.strategyId) ?? [];
+      strategyVersionsForId.push(version);
+      versionsByStrategy.set(row.version.strategyId, strategyVersionsForId);
+    }
+    if (row.allocation) {
+      version.allocations.push({
+        assetMint: row.allocation.assetMint,
+        weightBps: row.allocation.weightBps,
+      });
+    }
+  }
+
+  const investmentStatsByStrategy = new Map(
+    investmentStatsRows.map((row) => [row.strategyId, row]),
+  );
+  const strategistStatsByWallet = new Map(
+    strategistStatsRows.map((row) => [row.creatorWallet, row]),
+  );
+  const earningsStatsByWallet = new Map(
+    earningsStatsRows.map((row) => [row.strategistWallet, row]),
+  );
+  const snapshotsByStrategy = new Map<
+    string,
+    (typeof strategyNavSnapshots.$inferSelect)[]
+  >();
+  for (const snapshot of snapshotRows) {
+    const snapshots = snapshotsByStrategy.get(snapshot.strategyId) ?? [];
+    snapshots.push(snapshot);
+    snapshotsByStrategy.set(snapshot.strategyId, snapshots);
+  }
+
+  return strategyRows.map((strategy) => {
+    const versions = versionsByStrategy.get(strategy.id) ?? [];
+    const allocations =
+      versions.find((version) => version.version === strategy.currentVersion)
+        ?.allocations ?? [];
+    const investmentStats = investmentStatsByStrategy.get(strategy.id);
+    const strategistStats = strategistStatsByWallet.get(strategy.creatorWallet);
+    const earningsStats = earningsStatsByWallet.get(strategy.creatorWallet);
+    const snapshots = snapshotsByStrategy.get(strategy.id) ?? [];
+    const latestNavSnapshot = snapshots.at(-1) ?? null;
+    const performance = calculatePerformance(
+      snapshots.map((snapshot) => ({
+        timestamp: snapshot.timestamp,
+        navUsdcAtomic: snapshot.navUsdcAtomic,
+      })),
+    );
+
+    return {
+      id: strategy.id,
+      creatorWallet: strategy.creatorWallet,
+      registryStrategyIdHex: strategy.registryStrategyIdHex,
+      registryStrategyPda: strategy.registryStrategyPda,
+      name: strategy.name,
+      description: strategy.description,
+      currentVersion: strategy.currentVersion,
+      status: strategy.status,
+      createdAt: iso(strategy.createdAt),
+      allocations,
+      investorCount: Number(investmentStats?.investorCount ?? 0),
+      capitalFollowingUsdcAtomic: String(
+        investmentStats?.capitalFollowingUsdcAtomic ?? 0,
+      ),
+      strategistEarningsUsdcAtomic: String(
+        earningsStats?.strategistEarningsUsdcAtomic ?? 0,
+      ),
+      strategistStrategyCount: Number(strategistStats?.strategyCount ?? 0),
+      latestNavSnapshot: latestNavSnapshot ? toNavDto(latestNavSnapshot) : null,
+      performance: toPerformanceDto(performance),
+      versions,
+    };
+  });
+}
+
 async function hydrateStrategy(
   db: Db,
   strategy: typeof strategies.$inferSelect,
 ): Promise<StrategyDetail> {
-  const { allocations } = await getVersionAllocations(
-    db,
-    strategy.id,
-    strategy.currentVersion,
-  );
-
-  const [investmentStats] = await db
-    .select({
-      investorCount: countDistinct(strategyInvestments.investorWallet),
-      capitalFollowingUsdcAtomic: sum(
-        strategyInvestments.initialAmountUsdcAtomic,
-      ),
-    })
-    .from(strategyInvestments)
-    .where(eq(strategyInvestments.strategyId, strategy.id));
-
-  const [strategistStats] = await db
-    .select({ strategyCount: countDistinct(strategies.id) })
-    .from(strategies)
-    .where(eq(strategies.creatorWallet, strategy.creatorWallet));
-  const [earningsStats] = await db
-    .select({
-      strategistEarningsUsdcAtomic: sum(feeEvents.strategistFeeUsdcAtomic),
-    })
-    .from(feeEvents)
-    .where(eq(feeEvents.strategistWallet, strategy.creatorWallet));
-
-  const snapshots = await db
-    .select()
-    .from(strategyNavSnapshots)
-    .where(eq(strategyNavSnapshots.strategyId, strategy.id))
-    .orderBy(asc(strategyNavSnapshots.timestamp));
-
-  const latestNavSnapshot = snapshots.at(-1) ?? null;
-  const performance = calculatePerformance(
-    snapshots.map((snapshot) => ({
-      timestamp: snapshot.timestamp,
-      navUsdcAtomic: snapshot.navUsdcAtomic,
-    })),
-  );
-
-  return {
-    id: strategy.id,
-    creatorWallet: strategy.creatorWallet,
-    registryStrategyIdHex: strategy.registryStrategyIdHex,
-    registryStrategyPda: strategy.registryStrategyPda,
-    name: strategy.name,
-    description: strategy.description,
-    currentVersion: strategy.currentVersion,
-    status: strategy.status,
-    createdAt: iso(strategy.createdAt),
-    allocations,
-    investorCount: Number(investmentStats?.investorCount ?? 0),
-    capitalFollowingUsdcAtomic: String(
-      investmentStats?.capitalFollowingUsdcAtomic ?? 0,
-    ),
-    strategistEarningsUsdcAtomic: String(
-      earningsStats?.strategistEarningsUsdcAtomic ?? 0,
-    ),
-    strategistStrategyCount: Number(strategistStats?.strategyCount ?? 0),
-    latestNavSnapshot: latestNavSnapshot ? toNavDto(latestNavSnapshot) : null,
-    performance: toPerformanceDto(performance),
-    versions: await listStrategyVersionsInternal(db, strategy.id),
-  };
+  const [hydrated] = await hydrateStrategies(db, [strategy]);
+  return hydrated;
 }
 
 export async function createStrategy(
@@ -302,7 +399,7 @@ export async function listStrategies(db: Db): Promise<StrategyListItem[]> {
     .where(eq(strategies.status, "ACTIVE"))
     .orderBy(desc(strategies.createdAt));
 
-  return Promise.all(rows.map((row) => hydrateStrategy(db, row)));
+  return hydrateStrategies(db, rows);
 }
 
 export async function getStrategy(
@@ -561,7 +658,7 @@ export async function listStrategistStrategies(
     .where(eq(strategies.creatorWallet, wallet))
     .orderBy(desc(strategies.createdAt));
 
-  return Promise.all(rows.map((row) => hydrateStrategy(db, row)));
+  return hydrateStrategies(db, rows);
 }
 
 export async function recordInvestment(

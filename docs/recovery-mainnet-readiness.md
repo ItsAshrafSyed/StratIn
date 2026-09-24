@@ -15,8 +15,8 @@
 ### Devnet registry testing with mainnet execution
 
 - Set `REGISTRY_SOLANA_RPC_URL` to the intended devnet endpoint and `REGISTRY_NETWORK=devnet`.
-- Set `NEXT_PUBLIC_REGISTRY_SOLANA_RPC_PROXY_URL`, `NEXT_PUBLIC_REGISTRY_SOLANA_RPC_URL`, and `NEXT_PUBLIC_REGISTRY_NETWORK=devnet` for the same registry cluster.
-- Keep execution variables and `NEXT_PUBLIC_WALLET_CHAIN` on mainnet for Jupiter/tokenized-equity execution unless a test explicitly says otherwise.
+- Set the web server's `REGISTRY_SOLANA_RPC_URL` to the same devnet endpoint; the browser uses `/api/registry-rpc` by default.
+- For an isolated registry UI test, set `NEXT_PUBLIC_WALLET_CHAIN=solana:devnet` and do not execute investments or Jupiter swaps. Keep execution RPC variables on mainnet.
 - For the explicit integration script only, set `STRATIN_REGISTRY_SIGNER_PATH` or configure the Solana CLI keypair path. Never place the signer file in the repository.
 
 ### Mainnet execution
